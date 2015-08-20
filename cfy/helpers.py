@@ -7,6 +7,7 @@ from cloudify.exceptions import (NonRecoverableError, RecoverableError)
 
 from functools import wraps
 
+from cfy import NoResourceError
 from fcoclient.clients import (get_client, RESTClient, PROP_CLIENT_CONFIG)
 from fcoclient.api import REST as RESTApi
 import fcoclient.exceptions as fco_exceptions
@@ -106,13 +107,23 @@ def with_fco_api(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         _put_api_in_kwargs('fco_api', kwargs)
+        return f(*args, **kwargs)
 
+    return wrapper
+
+
+def with_exceptions_handled(f):
+    """Wrapper to add FCO API abstraction object."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
         try:
-            return f(*args, **kwargs)
-        except fco_exceptions.NonRecoverableError as e:
+            f(*args, **kwargs)
+        except (fco_exceptions.NonRecoverableError, NoResourceError) as e:
             raise NonRecoverableError(str(e))
         except fco_exceptions.RecoverableError as e:
             raise RecoverableError(str(e), retry_after=e.retry_after)
+        except Exception as e:
+            raise NonRecoverableError(type(e).__name__ + str(e))
 
     return wrapper
 

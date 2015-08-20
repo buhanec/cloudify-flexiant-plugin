@@ -25,7 +25,7 @@ import socket
 import errno
 from cloudify import ctx
 from cloudify.decorators import operation
-from cfy.helpers import with_fco_api
+from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes.cobjects import SSHKey
 
 
@@ -65,6 +65,7 @@ def ssh_probe(server_ip, server_port=22, time=10, step=90):
 
 @operation
 @with_fco_api
+@with_exceptions_handled
 def create(fco_api, *args, **kwargs):
     rp_ = ctx.instance.runtime_properties
     np_ = ctx.node.properties
@@ -250,6 +251,7 @@ def create(fco_api, *args, **kwargs):
 
 @operation
 @with_fco_api
+@with_exceptions_handled
 def delete(fco_api, *args, **kwargs):
     server_uuid = ctx.instance.runtime_properties.get(RPROP_UUID)
     job_uuid = delete_resource(fco_api, server_uuid, 'SERVER', True) \
@@ -260,6 +262,7 @@ def delete(fco_api, *args, **kwargs):
 
 @operation
 @with_fco_api
+@with_exceptions_handled
 def start(fco_api, *args, **kwargs):
     server_uuid = ctx.instance.runtime_properties.get(RPROP_UUID)
     if get_server_state(fco_api, server_uuid) != 'RUNNING':
@@ -269,6 +272,7 @@ def start(fco_api, *args, **kwargs):
 
 @operation
 @with_fco_api
+@with_exceptions_handled
 def stop(fco_api, *args, **kwargs):
     server_uuid = ctx.instance.runtime_properties.get(RPROP_UUID)
     if get_server_state(fco_api, server_uuid) != 'STOPPED':
@@ -278,6 +282,7 @@ def stop(fco_api, *args, **kwargs):
 
 @operation
 @with_fco_api
+@with_exceptions_handled
 def creation_validation(fco_api, *args, **kwargs):
     server_uuid = ctx.instance.runtime_properties.get(RPROP_UUID)
     try:
