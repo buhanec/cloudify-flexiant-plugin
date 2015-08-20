@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 from cfy import (get_image,
-                 get_first_vdc,
+                 get_vdc_uuid_by_cluster,
                  create_vdc,
                  get_prod_offer,
                  create_server,
@@ -87,7 +87,7 @@ def create(fco_api, *args, **kwargs):
 
     image = get_image(fco_api, image_uuid)
     cluster_uuid = np_.get(PROP_CLUSTER) or image.clusterUUID
-    vdc_uuid = get_first_vdc(fco_api, cluster_uuid).resourceUUID
+    vdc_uuid = get_vdc_uuid_by_cluster(fco_api, cluster_uuid).resourceUUID
 
     # Set up VDC
     if not vdc_uuid:

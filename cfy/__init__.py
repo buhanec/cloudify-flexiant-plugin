@@ -10,6 +10,19 @@ from datetime import datetime
 __author__ = 'alen'
 
 
+class NoResourceError(Exception):
+
+    """Exception raised when no results found despite being expected."""
+
+    def __init__(self, res_type, query):
+        self.res_type = res_type
+        self.query = query
+
+    def __str__(self):
+        return 'No resource of type {} with query {}'.format(self.res_type,
+                                                             self.query)
+
+
 ###############################################################################
 # "Utility functions"
 ###############################################################################
@@ -76,7 +89,7 @@ def get_resource(fco_api, res_uuid, res_type):
         return fco_api.listResources(searchFilter=sf, resourceType=res_type)\
             .list[0]
     except KeyError:
-        return 'NOT_FOUND'
+        raise NoResourceError(res_type, sf)
 
 
 def first_resource(fco_api, res_type):
@@ -104,8 +117,11 @@ def get_prod_offer(fco_api, prod_offer_name):
                                    condition='IS_EQUAL_TO',
                                    value=['ACTIVE'])
     sf = cobjects.SearchFilter(filterConditions=[fc1, fc2])
-    return fco_api.listResources(resourceType='PRODUCTOFFER',
-                                 searchFilter=sf).list[0]
+    try:
+        return fco_api.listResources(resourceType='PRODUCTOFFER',
+                                     searchFilter=sf).list[0]
+    except KeyError:
+        raise NoResourceError('PRODUCTOFFER', sf)
 
 
 ###############################################################################
@@ -113,7 +129,8 @@ def get_prod_offer(fco_api, prod_offer_name):
 ###############################################################################
 
 def get_cluster_uuid(fco_api):
-    return fco_api.listResources(resourceType='CLUSTER').list[0].resourceUUID
+    # The "recommended" way to do it.
+    return first_resource(fco_api, 'CLUSTER').resourceUUID
 
 
 ###############################################################################
@@ -129,15 +146,17 @@ def create_vdc(fco_api, cluster_uuid, name=None):
     return fco_api.createVDC(skeletonVDC=vdc)
 
 
-def get_first_vdc(fco_api, cluster_uuid):
+def get_vdc_uuid_by_cluster(fco_api, cluster_uuid):
+    # The "recommended" way to do it.
     for v in get_resource_type(fco_api, 'VDC'):
         if v.clusterUUID == cluster_uuid:
             return v
-    return None
+    raise NoResourceError('VDC', 'get_vdc_uuid_by_cluster')
 
 
 def get_vdc_uuid(fco_api):
-    return fco_api.listResources(resourceType='VDC').list[0].resourceUUID
+    # The "recommended" way to do it.
+    return first_resource(fco_api, 'VDC').resourceUUID
 
 
 ###############################################################################
@@ -165,7 +184,7 @@ def get_network_uuid(fco_api, net_type, cluster_uuid):
     for v in result_set.list:
         if v.clusterUUID == cluster_uuid and v.networkType == net_type:
             return v.resourceUUID
-    return None
+    raise NoResourceError('NETWORK', 'get_network_uuid')
 
 
 ###############################################################################
@@ -182,8 +201,10 @@ def get_image(fco_api, uuid):
     if not result_set.totalCount:
         raise RuntimeError('Image {} not found or no permissions to use.'
                            .format(uuid))
-
-    return result_set.list[0]
+    try:
+        return result_set.list[0]
+    except KeyError:
+        raise NoResourceError('IMAGE', sf)
 
 
 ###############################################################################
@@ -194,7 +215,7 @@ def get_server_state(fco_api, server_uuid):
     try:
         return get_resource(fco_api, server_uuid, 'SERVER').status
     except AttributeError:
-        return 'NOT_FOUND'
+        raise NoResourceError('SERVER', server_uuid)
 
 
 def change_server_status(fco_api, server_uuid, state):
