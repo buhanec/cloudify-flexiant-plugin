@@ -123,7 +123,8 @@ def with_exceptions_handled(f):
         except fco_exceptions.RecoverableError as e:
             raise RecoverableError(str(e), retry_after=e.retry_after)
         except Exception as e:
-            raise NonRecoverableError(type(e).__name__ + str(e))
+            raise NonRecoverableError('{}: {}'
+                                      .format(type(e).__name__, str(e)))
 
     return wrapper
 
