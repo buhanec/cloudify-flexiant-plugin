@@ -1,0 +1,42 @@
+plugins:
+  flexiant:
+    executor: central_deployment_agent
+    source: https://github.com/buhanec/cloudify-flexiant-plugin/archive/master.zip
+
+node_types:
+  cloudify.flexiant.nodes.Server:
+    derived_from: cloudify.nodes.Compute
+    properties:
+      auth: {}
+      image_uuid: {}
+      key_uuid: {}
+      net_uuid: {}
+      net_type:
+        default: 'IP'
+      cpu_count:
+        default: 2
+      ram_amount:
+        default: 2048
+      server_type:
+        default: '2 GB / 2 CPU'
+      install_agent:
+        default: true
+      cloudify_agent:
+        default: {}
+      # TODO: remove once docker images catch up to git repos
+      os:
+        default:
+          type: 'linux'
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: flexiant.cfy.server.create
+        start:
+          implementation: flexiant.cfy.server.start
+        stop:
+          implementation: flexiant.cfy.server.stop
+        delete:
+          implementation: flexiant.cfy.server.delete
+      cloudify.interfaces.validation:
+        creation:
+          implementation: flexiant.cfy.server.creation_validation
