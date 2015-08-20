@@ -21,7 +21,7 @@ def _find_instanceof_in_kwargs(cls, kw):
     ret = [v for v in kw.values() if isinstance(v, cls)]
     if not ret:
         return None
-    if len(ret) > 1:
+    if len(ret) != 1:
         raise NonRecoverableError(
             "Expected to find exactly one instance of {0} in "
             "kwargs but found {1}".format(cls, len(ret)))
@@ -113,7 +113,6 @@ def with_fco_api(f):
             raise NonRecoverableError(str(e))
         except fco_exceptions.RecoverableError as e:
             raise RecoverableError(str(e), retry_after=e.retry_after)
-
 
     return wrapper
 
