@@ -3,7 +3,9 @@ cloudify-flexiant-plugin
 
 A [Cloudify](http://getcloudify.org/) plugin for [Flexiant](https://www.flexiant.com/)'s cloud platform. Currently supports spawning instances and semi-automagically assigning them all the necessary devices.
 
-Currently it supports provisioning single Server instances, and has been designed to used and tested with an IP network type.
+Currently supports provisioning unconnected server instances, and has been designed to used and tested with an IP network type.
+
+Additionally provides a framework upon which to build a more complete Flexiant plugin, with support for almost all REST API endpoints.
 
 Installation
 ------------
@@ -16,17 +18,16 @@ tosca_definitions_version: cloudify_dsl_1_0
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m4/types.yaml
   - https://raw.githubusercontent.com/buhanec/cloudify-flexiant-plugin/master/plugin.yaml
-
-inputs:
 ...
 ```
 
 Once included in the blueprint, Flexiant Server instances can be provisioned using the `cloudify.flexiant.nodes.Server` type.
 
-Type Properties
----------------
+`cloudify.flexiant.nodes.Server` Properties
+-------------------------------------------
 
 Any instance of `cloudify.flexiant.nodes.Server` accepts the following properties in order to determine its configuration correctly:
+
 * `auth`: An object/mapping containing authentication parameters for the FCO platform. The values required can all be gathered from the FCO CP. The available authentication methods are:
     * Username & password authentication, required keys: `username`, `password`, `customer` (as a UUID) and `url` (base URL pointing to the API)
     * API user authentication, required keys: `api_uuid`, `password`, `customer` (as a UUID) and `url` (base URL pointing to the API)
@@ -69,17 +70,40 @@ node_templates:
 Determining UUIDs and Other Values
 ----------------------------------
 
-The following pages contain the relevant UUIDs/values:
-* `api_uuid`: Users > Select your API User > Information
-* `username` and `customer`: My account > Account Details > Your API Details. Note that your API username in this plugin does not include the trailing slash and Customer UUID found on the CP, as they are part of a different parameter.
-* `image_uuid`: Images > Select your image > Information
-* `key_uuid`: SSH Keys > Select your key > Information
-* `net_uuid`: Networks > Select your network > Information
-* `net_type`: Check Flexiant documentation for available types, `IP` is supported without manual configuration.
-* `server_type`: Add Server > Select the VDC in which your image is contained > Pick a server offer from the offered drop down list
+Using the CP, you can generally view the UUID by selecting the appropriate object type in the sidebar and then finding the exact object in the list:
 
-Extending the Plugin
---------------------
+![Sidebar Image](https://i.imgur.com/XyUZJaL.png)
 
-To easily extend the plugin, the entire [FCO REST API](http://docs.flexiant.com/display/DOCS/REST+documentation) is exposed at a low level in the `api` module of the `fcoclient` package, drawing information from the `resttypes` package. To refer to available endpoints, objects and enums look inside the `resttypes` package. It is abstracted for easier use in the `cfy` package, where any modifications should be made. In this package refer to `server.py` to see how to implement specific steps in workflows, and inspect `__init__.py` for available API calls and their implementations.
- 
+And then checking the Information page for all the UUIDs under Related Resources & UUIDs:
+
+![UUID Image](https://i.imgur.com/v4PhoYk.png)
+
+The following UUIDs can be determined using this method:
+
+* `api_uuid` - find your API user under Users
+* `image_uuid`: find your image under Images
+* `key_uuid`: find your public key under SSH Keys
+* `net_uuid`: find your network under Networks
+
+These UUIDs are generally related and can be found referenced multiple times across different pages.
+
+The following have to be determined using a different procedure:
+
+* `username`: your CP login username
+* `customer`: can be found under related resources on e.g. your image Information page, or go to My Account > Settings > Account Details in the CP and find the Customer UUID in the Your API Details section (no, this is not the actual UUID):
+
+![Account Image](https://i.imgur.com/M7En9W4.png)
+
+* `net_type`: check [Flexiant documentation](http://docs.flexiant.com/display/DOCS/Introduction+to+Flexiant+Cloud+Orchestrator) for available types, currently only `IP` is supported without manual configuration and without tweaks to the plugin.
+* `server_type`: on the CP select Add Server and select the VDC in which your image is contained. The `server_type` can be any of your Configuration options (in the given image it is `0.5 GB / 1 CPU`:
+
+![Configuration Image](https://i.imgur.com/Sl6cwVF.png)
+
+Contributing to the Plugin
+--------------------------
+
+To easily extend the plugin, the entire [FCO REST API](http://docs.flexiant.com/display/DOCS/REST+documentation) is exposed at a low level in the `api` module of the `fcoclient` package, drawing information from the `resttypes` package. To refer to available endpoints, objects and enums look inside the `resttypes` package.
+
+The API is hidden is auto-configured and exposed to higher-level plugin operations in the `cfy` package, where most of the expansion should theoretically take place. Ideally every type provided by Flexiant should have a matching entry in the plugin definition (`plugin.yaml`), with related operations being defined in the `cfy` package.
+
+The biggest drawbacks currently include the unfriendly UUID-filled configuration, lack of being able to reuse components an inability to create instances of anything but servers. Ideally lookups would be created using names, with fallbacks to UUIDs - more information should be, ideally, automagically determined, and manual settings only required when conflicts arise.
