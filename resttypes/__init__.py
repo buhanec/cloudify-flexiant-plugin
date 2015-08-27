@@ -79,9 +79,9 @@ def rat_check(given_dict, all_, required, types, noneable,
 
 def is_acceptable(inst, type_, noneable):
     """
-    Check whether given instance is suitable for a cobjet of type type_.
+    Check if given data is suitable for a Complex Object of type type_.
 
-    :param inst: instance to be checked
+    :param inst: instance of data (dict) or instance of a Complex Object
     :param type_: type to check against
     :param noneable: can data be None
     :return: True or False depending on whether the check passed
@@ -107,9 +107,9 @@ def is_acceptable(inst, type_, noneable):
 
 def construct_data(inst, type_, noneable):
     """
-    Construct data for a cobject of type type_.
+    Construct data for a Complex Object of type type_.
 
-    :param inst: data source
+    :param inst: instance of data (dict) or instance of a Complex Object
     :param type_: type to construct
     :param noneable: can data be None
     :return: constructed data
