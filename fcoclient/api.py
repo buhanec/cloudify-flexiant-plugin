@@ -19,7 +19,6 @@ class REST(object):
 
         :param auth: dictionary containing auth details
         :param logger: reference to a logger
-        :return:
         """
         self.client = clients.get_client(auth, logger=logger)
         self.logger = logger
