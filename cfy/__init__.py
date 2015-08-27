@@ -71,16 +71,6 @@ def wait_for_status(fco_api, res_uuid, status, res_type, time=5, step=24):
     return bool(result_set.totalCount)
 
 
-def wait_for_job(fco_api, job_uuid, time=5, step=24):
-    while step:
-        job = get_resource(fco_api, job_uuid, 'JOB')
-        if job.status in ['IN_PROGRESS', 'WAITING', 'NOT_STARTED',
-                          'SUSPENDED']:
-            continue
-        return job.status == 'SUCCESSFUL'
-    return False
-
-
 def get_resource(fco_api, res_uuid, res_type):
     fc = cobjects.FilterCondition(field='resourceUUID',
                                   condition='IS_EQUAL_TO',
