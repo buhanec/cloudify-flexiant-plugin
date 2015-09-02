@@ -199,8 +199,9 @@ class Typed(object):
         return self.__str__()
 
     def __eq__(self, other):
-        return (isinstance(other, type(self)) and isinstance(self, type(other))
-                and (self._data is None or self._data == other._data))
+        return (isinstance(other, type(self)) and
+                isinstance(self, type(other)) and
+                (self._data is None or self._data == other._data))
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -294,8 +295,8 @@ def factory(cls, mapping=None, name=None, **kwargs):
         raise TypeError('mapped types must be of type type')
 
     if not name:
-        name = '{}{}'.format(cls.__name__,
-            ''.join([v.__name__.capitalize() for _, v in mapping.items()]))
+        name = '{}{}'.format(cls.__name__, ''.join([v.__name__.capitalize()
+                             for _, v in mapping.items()]))
 
     attribs = cls.__dict__.copy()
     attribs['_generated'] = True
@@ -306,8 +307,7 @@ def factory(cls, mapping=None, name=None, **kwargs):
             try:
                 v = mapping.pop(k)
                 try:
-                    check = getattr(cls, '_{}_check'.format(k)).__func__
-                    if not check(v):
+                    if not getattr(cls, '_{}_check'.format(k))(v):
                         raise TypeError('suitability check failed for typed '
                                         'attrib {} with value {}'
                                         .format(k, v.__name__))
@@ -328,19 +328,22 @@ class TypedDict(Typed):  # TODO: setdefault, cmp/lt/gt/etc.
 
     key_type = ImmutableType()
     item_type = ImmutableType()
-    _key_type_check = lambda k: k.__hash__ is not None
+
+    @classmethod
+    def _key_type_check(cls, key):
+        return key.__hash__ is not None
 
     @classmethod
     def is_acceptable(cls, inst):
         try:
             for k, v in inst.items():
                 if issubclass(cls.key_type, Typed):
-                    if not isinstance(k, cls.key_type) and \
-                            not cls.key_type.is_acceptable(k):
+                    if (not isinstance(k, cls.key_type) and
+                            not cls.key_type.is_acceptable(k)):
                         return False
                 elif issubclass(cls.key_type, Enum):
-                    if not isinstance(k, cls.key_type) and \
-                            not hasattr(cls.key_type, k):
+                    if (not isinstance(k, cls.key_type) and
+                            not hasattr(cls.key_type, k)):
                         return False
                 elif not isinstance(k, cls.key_type):
                     return False
@@ -348,12 +351,12 @@ class TypedDict(Typed):  # TODO: setdefault, cmp/lt/gt/etc.
                 if v is None and cls._noneable:
                     continue
                 elif issubclass(cls.item_type, Typed):
-                    if not isinstance(v, cls.item_type) and \
-                            not cls.item_type.is_acceptable(v):
+                    if (not isinstance(v, cls.item_type) and
+                            not cls.item_type.is_acceptable(v)):
                         return False
                 elif issubclass(cls.item_type, Enum):
-                    if not isinstance(v, cls.item_type) and \
-                            not hasattr(cls.item_type, v):
+                    if (not isinstance(v, cls.item_type) and
+                            not hasattr(cls.item_type, v)):
                         return False
                 elif not isinstance(v, cls.item_type):
                     return False
@@ -364,8 +367,8 @@ class TypedDict(Typed):  # TODO: setdefault, cmp/lt/gt/etc.
     def __init__(self, dict_=None, *args, **kwargs):
         super(TypedDict, self).__init__(self, *args, **kwargs)
 
-        if not self._generated and not self._key_type_check\
-                .__func__(kwargs.get('key_type')):
+        if (not self._generated and
+                not self._key_type_check(kwargs.get('key_type'))):
             raise TypeError('key_type must be hashable')
 
         self._data = {}
@@ -375,12 +378,12 @@ class TypedDict(Typed):  # TODO: setdefault, cmp/lt/gt/etc.
 
         # TODO: better way to do this, should probably move to MetaTyped soon
         self.__class__ = factory(TypedDict, {'key_type': self.key_type,
-                                       'item_type': self.item_type})
+                                             'item_type': self.item_type})
 
     def __setitem__(self, key, item):
         if isinstance(key, self.key_type):
-            if isinstance(item, self.item_type) \
-                    or (item is None and self._noneable):
+            if (isinstance(item, self.item_type)
+                    or (item is None and self._noneable)):
                 self._data[key] = item
         else:
             raise TypeError('Expected ({},{}), got ({},{})'.format(
@@ -448,27 +451,28 @@ class TypedList(Typed):  # TODO: mul, add
     """A typed list implementation."""
 
     item_type = ImmutableType()
-    _item_type_check = lambda i: hasattr(i, '__cmp__') or hasattr(i, '__lt__')\
-        or hasattr(i, '__gt__')
+
+    @classmethod
+    def _item_type_check(cls, item):
+        return (hasattr(item, '__cmp__') or hasattr(item, '__lt__') or
+                hasattr(item, '__gt__'))
 
     @classmethod
     def is_acceptable(cls, inst):
         try:
             for v in inst:
-                # print '  ->', type(v), '<=', cls.item_type
                 if v is None and cls._noneable:
                     continue
                 elif issubclass(cls.item_type, Typed):
-                    if not isinstance(v, cls.item_type) and \
-                            not cls.item_type.is_acceptable(v):
+                    if (not isinstance(v, cls.item_type) and
+                            not cls.item_type.is_acceptable(v)):
                         return False
                 elif issubclass(cls.item_type, Enum):
-                    if not isinstance(v, cls.item_type) and \
-                            not hasattr(cls.item_type, v):
+                    if (not isinstance(v, cls.item_type) and
+                            not hasattr(cls.item_type, v)):
                         return False
                 elif not isinstance(v, cls.item_type):
                     return False
-                # print '  -> pass'
         except:
             return False
         return True
@@ -476,8 +480,8 @@ class TypedList(Typed):  # TODO: mul, add
     def __init__(self, list_=None, *args, **kwargs):
         super(TypedList, self).__init__(self, *args, **kwargs)
 
-        if not self._generated and not self._item_type_check\
-                .__func__(kwargs.get('item_type')):
+        if (not self._generated and
+                not self._item_type_check(kwargs.get('item_type'))):
             raise TypeError('item_type must be sortable')
 
         self._data = []
@@ -491,8 +495,8 @@ class TypedList(Typed):  # TODO: mul, add
     def extend(self, other):
         if hasattr(other, '__iter__'):
             other = list(other)
-            error = TypeError('Expected all of type {}, got types {}'
-                    ,format(set([type(item) for item in other])))
+            error = TypeError('Expected all of type {}, got types {}',
+                              format(set([type(item) for item in other])))
 
             for k, v in enumerate(other):
                 if v is None and self.item_type._noneable:

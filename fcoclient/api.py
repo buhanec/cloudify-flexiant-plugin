@@ -33,6 +33,7 @@ class REST(object):
         :return: function representing the Endpoint
         """
         self.logger.debug('REST API endpoint request: %s', item)
+
         def wrapper(*args, **kwargs):
             return self.query(item, *args, **kwargs)
         return wrapper

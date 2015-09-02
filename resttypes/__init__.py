@@ -27,7 +27,7 @@ def to_str(uni_):
         for k, v in uni_.items():
             str_[to_str(k)] = to_str(v)
     elif isinstance(uni_, basestring):
-        str_ = uni_.encode('ascii','replace')
+        str_ = uni_.encode('ascii', 'replace')
     else:
         str_ = uni_
     return str_

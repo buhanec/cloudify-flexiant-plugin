@@ -231,7 +231,8 @@ def create(fco_api, *args, **kwargs):
     # except pxssh.ExceptionPxssh as e:
     #     logger.error('pexpect error: %s', str(e))
     # finally:
-    #     call(['sed', '-i', '/{}.*/d'.format('\\.'.join(server_ip.split('.')))])
+    #     call(['sed', '-i',
+    #           '/{}.*/d'.format('\\.'.join(server_ip.split('.')))])
 
     rp_[RPROP_UUID] = server_uuid
     rp_[RPROP_IP] = server_ip
