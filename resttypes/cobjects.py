@@ -28,7 +28,6 @@ class ComplexObject(Typed):
 
         :param data: data as a complete dict
         :param kwargs: if data is a dict it is updated with kwargs
-        :return:
         """
         """Initialise FCO REST API Complex Object."""
         super(ComplexObject, self).__init__(self)
@@ -51,7 +50,12 @@ class ComplexObject(Typed):
         self._data = self.construct_data(data)
 
     def __getattr__(self, attr):
-        """Easily access FCO REST API Complex Object attributes."""
+        """
+        Easily access FCO REST API Complex Object attributes.
+
+        :param attr: attribute to access
+        :return: attribute value
+        """
         if attr not in self.ALL_ATTRIBS:
             raise Exception('Complex Object {} does not have {}'
                             .format(type(self).__name__, attr))
@@ -82,7 +86,12 @@ class ComplexObject(Typed):
     # TODO: catch exceptions upstairs
     @classmethod
     def is_acceptable(cls, inst):
-        """Check if given data is acceptable according to spec."""
+        """
+        Check if given data is acceptable according to spec.
+
+        :param inst: instance of data (dict) or instance of a Complex Object
+        :return: boolean representing acceptability
+        """
         req = cls.REQUIRED_ATTRIBS.copy()
         opt = cls.OPTIONAL_ATTRIBS.copy()
         try:
@@ -99,7 +108,12 @@ class ComplexObject(Typed):
 
     @classmethod
     def construct_data(cls, inst):
-        """Take given data and initialise it to fit Complex Object spec."""
+        """
+        Take given data and initialise it to fit Complex Object spec.
+
+        :param inst: instance of data (dict) or instance of a Complex Object
+        :return: properly initialised data for the Complex Object
+        """
         inst = inst.copy()
         for k, v in inst.items():
             inst[k] = c_construct_data(v, cls.TYPES[k], cls._noneable)
@@ -116,11 +130,15 @@ class GenericContainer(ComplexObject):
     """
 
     def __getattr__(self, item):
-        """Return the mapped value of the attribute requested or None.
+        """
+        Return the mapped value of the attribute requested or None.
 
         If a GenericContainer object was explicitly instantiated with an
         unsupported type it will return that type for every attribute request,
         so long as the type does not support the 'get' method.
+
+        :param item: item/attribute name
+        :return: item/attribute value
         """
         if hasattr(self._data, 'get'):
             return self._data.get(item)
@@ -128,15 +146,24 @@ class GenericContainer(ComplexObject):
 
     @classmethod
     def is_acceptable(cls, inst):
-        """All data is acceptable for the GenericContainer."""
+        """
+        Check if given data is acceptable according to spec. It always is.
+
+        :param inst: instance of data (dict) or instance of a Complex Object
+        :return: boolean representing acceptability
+        """
         return True
 
     @classmethod
     def construct_data(cls, inst):
-        """Recursively create instances of itself from lists and dicts.
+        """
+        Recursively create instances of itself from lists and dicts.
 
-        Recursion stops when encountering an unsupported type, in whiczh case
+        Recursion stops when encountering an unsupported type, in which case
         that type is set as the value.
+
+        :param inst: virtually any kind of data
+        :return: dict or list of "primitive" data and Generic Containers
         """
         supported = (list, dict)
         if isinstance(inst, list):

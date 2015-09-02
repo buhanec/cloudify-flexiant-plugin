@@ -169,6 +169,17 @@ class APIClient(object):
     def __init__(self, auth, retry_count=REST_RETRY_COUNT,
                  retry_delay=REST_RETRY_DELAY, rest_headers=REST_HEADERS,
                  logger=None, internal_retry=REST_INTERNAL_RETRY):
+        """
+        Initialise FCO API Client
+
+        :param auth: dictionary containing auth details
+        :param retry_count: amount of attempts at making an API call
+        :param retry_delay: delay between repeating a failed API call
+        :param rest_headers: headers to include in the API call
+        :param logger: external logger object to use
+        :param internal_retry: perform retry attempts internally rather than \
+            letting cloudify handle them
+        """
         """Initialise FCO API Client."""
         self.retry_count = retry_count
         self.retry_delay = retry_delay
@@ -195,6 +206,12 @@ class RESTClient(APIClient):
     REQUIRED_AUTH = [None]
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialise FCO REST API Client.
+
+        :param args: args to pass to APIClient constructor
+        :param kwargs: keyword args to pass to APIClient constructor
+        """
         """Initialise FCO REST API Client."""
         super(RESTClient, self).__init__(*args, **kwargs)
         self.auth = ('', '')
@@ -236,7 +253,12 @@ class UserPassRESTClient(RESTClient):
                      PROP_CLIENT_CUSTOMER, PROP_CLIENT_SERVICE_URL]
 
     def __init__(self, *args, **kwargs):
-        """Initialise UserPassRESTClient."""
+        """
+        Initialise FCO REST API Client using username and password auth.
+
+        :param args: args to pass to APIClient constructor
+        :param kwargs: keyword args to pass to APIClient constructor
+        """
         super(UserPassRESTClient, self).__init__(*args, **kwargs)
         try:
             self.auth = ('{}/{}'.format(self.auth2[PROP_CLIENT_USERNAME],
@@ -256,7 +278,12 @@ class APIUserPassRESTClient(RESTClient):
                      PROP_CLIENT_CUSTOMER, PROP_CLIENT_SERVICE_URL]
 
     def __init__(self, *args, **kwargs):
-        """Initialise APIUserPassRESTClient."""
+        """
+        Initialise FCO REST API Client using an API account.
+
+        :param args: args to pass to APIClient constructor
+        :param kwargs: keyword args to pass to APIClient constructor
+        """
         super(APIUserPassRESTClient, self).__init__(*args, **kwargs)
         try:
             self.auth = ('{}/{}'.format(self.auth2[PROP_CLIENT_API_USERNAME],
@@ -275,7 +302,12 @@ class APITokenRESTClient(RESTClient):
     REQUIRED_AUTH = [PROP_CLIENT_TOKEN, PROP_CLIENT_SERVICE_URL]
 
     def __init__(self, *args, **kwargs):
-        """Initialise APIUserPassRESTClient."""
+        """
+        Initialise FCO REST API Client using an API token.
+
+        :param args: args to pass to APIClient constructor
+        :param kwargs: keyword args to pass to APIClient constructor
+        """
         super(APITokenRESTClient, self).__init__(*args, **kwargs)
         try:
             self.auth = (self.auth2[PROP_CLIENT_TOKEN], '')
@@ -288,6 +320,13 @@ class APITokenRESTClient(RESTClient):
 # Client functions
 
 def get_client(auth, logger):
+    """
+    Get an instance of a an API Client appropriate to the authentication.
+
+    :param auth: dictionary containing auth details
+    :param logger: external logger object to use
+    :return: subclass of RESTClient
+    """
     """Get an instance of the appropriate API Client."""
     for cls in UserPassRESTClient, APIUserPassRESTClient, APITokenRESTClient:
         if cls.can_handle(auth):

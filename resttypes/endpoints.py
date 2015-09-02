@@ -37,7 +37,13 @@ class Endpoint(Typed):
     RETURNS = {}
 
     def __init__(self, parameters=None, data=None, **kwargs):
-        """Initialise endpoint object."""
+        """
+        Initialise Endpoint object.
+
+        :param parameters: explicitly defined parameters dict
+        :param data: explicitly defined data dict
+        :param kwargs: parameters and data that will be automatically sorted
+        """
         super(Endpoint, self).__init__(self)
 
         # We can append underscores to avoid keyword conflicts
@@ -65,7 +71,14 @@ class Endpoint(Typed):
 
     @classmethod
     def prepare_input(cls, parameters=None, data=None, **kwargs):
-        """Re-shuffle input data to split into parameters and payload data."""
+        """
+        Re-shuffle input data to split into parameters and payload data.
+
+        :param parameters: explicitly defined parameters dict
+        :param data: explicitly defined data dict
+        :param kwargs: parameters and data that will be automatically sorted
+        :return: updated parameters and data
+        """
         if parameters is None:
             parameters = {}
         if data is None:
@@ -94,6 +107,13 @@ class Endpoint(Typed):
 
     @classmethod
     def get_endpoint(cls, parameters=None, data=None):
+        """
+        Create the URL based on an extremely smart algorithm.
+
+        :param parameters: endpoint parameters
+        :param data: endpoint data
+        :return: best possible endpoint to use
+        """
         """Create the URL based on an extremely smart algorithm."""
         valid_endpoints = []
         for endpoint in cls.ENDPOINTS:
@@ -130,7 +150,12 @@ class Endpoint(Typed):
 
     @classmethod
     def validate_return(cls, return_value):
-        """Verify that return data matches object specification."""
+        """
+        Verify that return data matches object specification.
+
+        :param return_value: return value received
+        :return: boolean representing validity
+        """
         return c_is_acceptable(return_value, cls.RETURNS.values()[0],
                                cls._noneable)
 
@@ -138,7 +163,12 @@ class Endpoint(Typed):
     # TODO: catch exceptions upstairs
     @classmethod
     def is_acceptable(cls, inst):
-        """Verify instance is acceptable input based on spec."""
+        """
+        Check if given data is acceptable according to spec.
+
+        :param inst: instance of data (dict) or instance of a Complex Object
+        :return: boolean representing acceptability
+        """
         req = cls.REQUIRED_PARAMS | cls.REQUIRED_DATA
         opt = cls.OPTIONAL_PARAMS | cls.OPTIONAL_DATA
 

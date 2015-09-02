@@ -58,15 +58,36 @@ _None = _NoneType()
 
 
 class MetaTyped(type):
-    """Get ready for this world of pain."""
+
+    """Primarily useful for isinstance checking.
+
+    Can be used to set some of the values the factory is generating."""
 
     def __new__(mcs, name, bases, attribs):
+        """
+        Triggered when a new object is created.
+
+        Could be used to generate relevant qualities of new objects that are
+        currently being set in the factory.
+
+        :param mcs: class to create
+        :param name: object name
+        :param bases: object bases
+        :param attribs: object attribs
+        :return: new object
+        """
         types = [a for a, p in attribs.items() if
                  isinstance(p, ImmutableType)]
         attribs['_types'] = types
         return type.__new__(mcs, name, bases, attribs)
 
     def __instancecheck__(self, other):
+        """
+        Check if other "isinstance" of the given Typed class.
+
+        :param other: object to check
+        :return: True if is instance, False otherwise
+        """
         self_template = self
         while self_template._generated:
             self_template = self_template.__base__
@@ -101,7 +122,9 @@ class MetaTyped(type):
 
 class ImmutableType(object):
 
-    def __init__(self, value=_None, silent=False):  # TODO: not use _None?
+    """Immutable "type" that "cannot" be changed once set."""
+
+    def __init__(self, value=_None):
         if value is not _None:
             if not isinstance(value, type):
                 raise TypeError('constructing error, type must be a type, got '
@@ -148,6 +171,10 @@ class Typed(object):
         return [t for t, v in cls.__dict__.items() if
                 isinstance(v, ImmutableType)]
 
+    @classmethod
+    def is_acceptable(cls, inst):
+        return False
+
     @property
     def types(self):
         if self._type_dict:
@@ -155,10 +182,6 @@ class Typed(object):
         else:
             self._type_dict = {k: getattr(self, k) for k in self.types_keys()}
             return self._type_dict
-
-    @classmethod
-    def is_acceptable(cls, inst):
-        return False
 
     def __init__(self, *args, **kwargs):
         """Perform generic Typed object initialisation."""
@@ -283,6 +306,15 @@ class Typed(object):
 
 
 def factory(cls, mapping=None, name=None, **kwargs):
+    """
+    Factory to create a class with fixed types from a class with generic types.
+
+    :param cls: generic base class to assign fixed types to
+    :param mapping: mapping of type keys to specific types
+    :param name: name of the new class
+    :param kwargs: used instead of mapping if mapping is not set
+    :return: new class with fixed types
+    """
     types = cls.types_keys()
 
     if len(types) == 1 and isinstance(mapping, type):
@@ -504,7 +536,6 @@ class TypedList(Typed):  # TODO: mul, add
                 elif issubclass(self.item_type, (Typed, Enum)):
                     if not isinstance(v, self.item_type):
                         if self.item_type.is_acceptable(v):
-                            # print 'Instantiating', self.item_type, v
                             other[k] = self.item_type(v)
                         else:
                             raise error
