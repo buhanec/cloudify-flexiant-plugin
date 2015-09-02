@@ -65,7 +65,7 @@ def get_type(s, d_types, u_types, o=None):
 
 def indexer(url):
     """Get first table in a page."""
-    for tr in bs(requests.get(BASE + url).text)\
+    for tr in bs(requests.get(BASE + url).text) \
             .select('.wiki-content .table-wrap')[0].select('tr')[1:]:
         a = tr.find('td').find('a')
         yield a.text, a['href']

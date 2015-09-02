@@ -414,8 +414,8 @@ class TypedDict(Typed):  # TODO: setdefault, cmp/lt/gt/etc.
 
     def __setitem__(self, key, item):
         if isinstance(key, self.key_type):
-            if (isinstance(item, self.item_type)
-                    or (item is None and self._noneable)):
+            if (isinstance(item, self.item_type) or
+                    (item is None and self._noneable)):
                 self._data[key] = item
         else:
             raise TypeError('Expected ({},{}), got ({},{})'.format(
