@@ -23,7 +23,7 @@ setup(
     # Do not use underscores in the plugin name.
     name='cloudify-flexiant-plugin',
 
-    version='3.3a2',
+    version='3.3a5',
     author='alen',
     author_email='alen.buhanec@xlab.si',
     description='Flexiant FCO plugin for Cloudify 3.x',
@@ -34,12 +34,16 @@ setup(
     license='LICENSE',
     zip_safe=False,
     install_requires=[
-        "cloudify-plugins-common>=3.3a2",
+        "cloudify-plugins-common>=3.3a5",
         "enum34",
         "requests"
     ],
     test_requires=[
-        "cloudify-dsl-parser>=3.3a2"
+        "cloudify-dsl-parser>=3.3a5",
         "nose"
+    ],
+    dependency_links=[
+        "git+git://github.com/cloudify-cosmo/cloudify-plugins-common.git@3.3m5#egg=cloudify-plugins-common=3.3a5",  # noqa
+        "git+git://github.com/cloudify-cosmo/cloudify-dsl-parser.git@3.3m5#egg=cloudify-dsl-parser=3.3a5"  # noqa
     ]
 )
