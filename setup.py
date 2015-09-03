@@ -23,7 +23,7 @@ setup(
     # Do not use underscores in the plugin name.
     name='cloudify-flexiant-plugin',
 
-    version='0.1',
+    version='3.3a2',
     author='alen',
     author_email='alen.buhanec@xlab.si',
     description='Flexiant FCO plugin for Cloudify 3.x',
@@ -39,7 +39,7 @@ setup(
         "requests"
     ],
     test_requires=[
-        "cloudify-dsl-parser>=3.2"
+        "cloudify-dsl-parser>=3.3a2"
         "nose"
     ]
 )
