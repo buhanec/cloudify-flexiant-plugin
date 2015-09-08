@@ -34,12 +34,15 @@ setup(
     license='LICENSE',
     zip_safe=False,
     install_requires=[
-        'cloudify-plugins-common>=3.3a5',
+        # 'cloudify-plugins-common>=3.3a5',
+        'cloudify-plugins-common>=3.3a4',
         'enum34',
-        'requests'
+        'requests',
+        'futures'
     ],
     test_requires=[
-        'cloudify-dsl-parser>=3.3a5',
+        # 'cloudify-dsl-parser>=3.3a5',
+        'cloudify-dsl-parser>=3.3a4',
         'nose'
     ],
     dependency_links=[

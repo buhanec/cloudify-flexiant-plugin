@@ -107,3 +107,11 @@ To easily extend the plugin, the entire [FCO REST API](http://docs.flexiant.com/
 The API is hidden is auto-configured and exposed to higher-level plugin operations in the `cfy` package, where most of the expansion should theoretically take place. Ideally every type provided by Flexiant should have a matching entry in the plugin definition (`plugin.yaml`), with related operations being defined in the `cfy` package.
 
 The biggest drawbacks currently include the unfriendly UUID-filled configuration, lack of being able to reuse components an inability to create instances of anything but servers. Ideally lookups would be created using names, with fallbacks to UUIDs - more information should be, ideally, automagically determined, and manual settings only required when conflicts arise.
+
+Updating the Defintions
+-----------------------
+
+When updating the definitions, care must be taken to ensure that:
+
+* `GenericObject` is used in place of `object`
+* `QueryField` operations match available operations in the `Condition` enum

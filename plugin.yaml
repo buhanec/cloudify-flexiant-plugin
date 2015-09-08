@@ -8,25 +8,28 @@ node_types:
     derived_from: cloudify.nodes.Compute
     properties:
       auth: {}
-      image_uuid: {}
-      key_uuid: {}
-      net_uuid: {}
-      net_type:
+      image: {}
+      cluster: {}
+      vdc: {}
+      network: {}
+      network_type:
         default: 'IP'
       cpu_count:
-        default: 2
+        default: ~
       ram_amount:
-        default: 2048
+        default: ~
+      disk_size:
+        default: ~
       server_type:
         default: 'Stanard Server'
+      ssh_key:
+        default: ~
+      public_keys:
+        default: []
       install_agent:
         default: true
       cloudify_agent:
         default: {}
-      # TODO: remove once docker images catch up to git repos
-      os:
-        default:
-          type: 'linux'
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
