@@ -49,6 +49,14 @@ class ComplexObject(Typed):
 
         self._data = self.construct_data(data)
 
+    def untype(self, data=None):
+        if data is None:
+            data = self._data
+        if isinstance(data, datetime):
+            return data.strftime('%Y-%m-%dT%H:%M:%S') + '+0000'
+        else:
+            return super(ComplexObject, self).untype(data)
+
     def __getattr__(self, attr):
         """
         Easily access FCO REST API Complex Object attributes.

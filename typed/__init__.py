@@ -285,24 +285,25 @@ class Typed(object):
 
     # __hash__ = None
 
-    def untype(self):
-        if isinstance(self._data, list):
-            untyped = list(self._data)
+    def untype(self, data=None):
+        data = data or self._data
+        if isinstance(data, list):
+            untyped = list(data)
             for k, v in enumerate(untyped):
                 try:
                     untyped[k] = v.untype()
                 except AttributeError:
-                    pass
+                    untyped[k] = self.untype(v)
             return untyped
-        elif isinstance(self._data, dict):
-            untyped = self._data.copy()
+        elif isinstance(data, dict):
+            untyped = data.copy()
             for k, v in untyped.items():
                 try:
                     untyped[k] = v.untype()
                 except AttributeError:
-                    pass
+                    untyped[k] = self.untype(v)
             return untyped
-        return self._data
+        return data
 
 
 def factory(cls, mapping=None, name=None, **kwargs):
