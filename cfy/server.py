@@ -3,8 +3,7 @@
 """Server stuff."""
 
 from __future__ import print_function
-from cfy import (get_image,
-                 get_vdc_uuid_by_cluster,
+from cfy import (get_vdc_uuid_by_cluster,
                  create_vdc,
                  get_prod_offer,
                  create_server,
@@ -29,16 +28,17 @@ from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes.cobjects import SSHKey
 
 
-PROP_IMAGE = 'image_uuid'
-PROP_NET_TYPE = 'net_type'
-PROP_DISK_SIZE = 'disk_size'
+PROP_IMAGE = 'image'
+PROP_CLUSTER = 'cluster'
+PROP_VDC = 'vdc'
+PROP_NET = 'network'
+PROP_NET_TYPE = 'network_type'
+PROP_SERVER_PO = 'server_type'
 PROP_CPU_COUNT = 'cpu_count'
 PROP_RAM_AMOUNT = 'ram_amount'
+PROP_DISK_SIZE = 'disk_size'
+PROP_KEY = 'ssh_key'
 PROP_PUBLIC_KEYS = 'public_keys'
-PROP_SERVER_PO_NAME = 'server_type'
-PROP_CLUSTER = 'cluster_uuid'
-PROP_NET = 'net_uuid'
-PROP_KEY = 'key_uuid'
 
 RPROP_UUID = 'uuid'
 RPROP_DISKS = 'disks'
@@ -63,6 +63,7 @@ def ssh_probe(server_ip, server_port=22, time=10, step=90):
     return bool(step)
 
 
+# TODO: completely rehaul
 @operation
 @with_fco_api
 @with_exceptions_handled
@@ -77,7 +78,7 @@ def create(fco_api, *args, **kwargs):
     cpu_count = np_.get(PROP_CPU_COUNT)
     ram_amount = np_.get(PROP_RAM_AMOUNT)
     public_keys = np_.get(PROP_PUBLIC_KEYS, [])
-    server_po_name = np_.get(PROP_SERVER_PO_NAME)
+    server_po_name = np_.get(PROP_SERVER_PO)
     net_uuid = np_.get(PROP_NET)
     key_uuid = np_.get(PROP_KEY)
 

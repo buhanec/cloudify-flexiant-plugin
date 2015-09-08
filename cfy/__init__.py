@@ -3,11 +3,15 @@
 """Provides a wrapper that functions as the Cloudify interface."""
 
 from __future__ import print_function
-from resttypes import cobjects
+from resttypes import cobjects, enums
+from functools import wraps
 from time import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
 
 __author__ = 'alen'
+
+
+JS = enums.JobStatus
 
 
 class NoResourceError(Exception):
@@ -21,6 +25,166 @@ class NoResourceError(Exception):
     def __str__(self):
         return 'No resource of type {} with query {}'.format(self.res_type,
                                                              self.query)
+
+
+class ConflictingResourceError(Exception):
+
+    """Exception raised when conflicting results found."""
+
+    def __init__(self, res_type, query, results):
+        self.res_type = res_type
+        self.query = query
+        self.results = results
+
+    def __str__(self):
+        return 'Multipled matches: {} of type {} with query {}'.format(
+            self.results, self.res_type, self.query)
+
+
+class TaskStartError(Exception):
+
+    """Exception raised when Task cannot start."""
+
+
+class JobFailed(Exception):
+
+    """Exception raised with Job failed."""
+
+
+class JobCancelled(Exception):
+
+    """Exception raised with Job is cancelled."""
+
+
+###############################################################################
+# Job scheduling and dependencies
+###############################################################################
+
+class Task(object):
+
+    """Represents a task with potential dependencies."""
+
+    def __init__(self, fco_api, func, timeout, dependencies):
+        self._fco_api = fco_api
+        self._func = func
+        self._timeout = float(timeout)
+        self._dependencies = set(dependencies)
+        self._completed = False
+        self._successful = False
+        self._job_uuid = None
+        self._result = None
+
+    @property
+    def dependencies(self):
+        return self._dependencies
+
+    @property
+    def successful(self):
+        return self._successful
+
+    @property
+    def completed(self):
+        return self._completed
+
+    @property
+    def job_uuid(self):
+        if isinstance(self._result, cobjects.ComplexObject):
+            return self._result.resourceUUID
+        return None
+
+    @property
+    def item_uuid(self):
+        if isinstance(self._result, cobjects.ComplexObject):
+            return self._result.itemUUID
+        return None
+
+    def update(self):
+        if self._completed:
+            return False
+
+        if not all(task.successful for task in self._dependencies):
+            raise TaskStartError()
+
+        if self._result is None:
+            self._result = self._func()
+        else:
+            self._result = get_resource(self._fco_api,
+                                        self._result.resourceUUID,
+                                        'JOB')
+        status = JS(self._result.status)
+
+        if status in {JS.FAILED, JS.CANCELLED}:
+            self._completed = True
+            self._successful = False
+        elif status in {JS.SUCCESSFUL}:
+            self._completed = True
+            self._successful = True
+        return True
+
+    def add_dependency(self, task):
+        self._dependencies.add(task)
+
+
+class Topology(object):
+
+    """Represents the overall topology and is in charge of running tasks."""
+
+    def __init__(self, check_rate=5):
+        self._check_rate = float(check_rate)
+        self._nodes = set()
+        self._roots = set()
+        self._current = set()
+
+    def add_task_tree(self, task):
+        self._nodes.add(task)
+        if not len(task.dependencies):
+            self._roots.add(task)
+
+    def create_dependency(self, task, dependency):
+        task.add_dependency(dependency)
+        try:
+            self._roots.remove(task)
+        except KeyError:
+            pass
+
+    def execute(self):
+        # TODO: concurrent execution with dependency passing parameters
+        # ... or use partials and uuid_with_timeout
+        pass
+
+
+def uuid_with_timeout(f, fco_api, timeout=None, check_rate=5):
+    """
+    Fetch item UUID from using a function that returns a Job or Job-compatible
+    object. If a timeout is specified the Job will be cancelled if not
+    successful before within the timeout period..
+
+    :param f: function to wrap
+    :param fco_api: FCO API object
+    :param timeout: time in seconds to wait before cancelling the job
+    :param check_rate: time in seconds to wait before checking job status
+    :return: function wrapper
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        result = f(fco_api, *args, **kwargs)
+        f_timeout = timeout
+        f_check_rate = float(check_rate)
+        if f_timeout is not None and int(f_timeout) > 0:
+            when = result.startTime + timedelta(seconds=int(f_timeout))
+            # TODO: can cancellations be scheduled?
+            fco_api.cancelJob(JobUUID=result.resourceUUID, when=when)
+        while True:
+            status = JS(result.status)
+            if status == JS.FAILED:
+                raise JobFailed()
+            elif status == JS.CANCELLED:
+                raise JobCancelled()
+            elif status == JS.SUCCESSFUL:
+                return result.itemUUID
+            sleep(f_check_rate)
+            result = get_resource(fco_api, result.resourceUUID, 'JOB')
+    return wrapper
 
 
 ###############################################################################
@@ -97,23 +261,51 @@ def wait_for_status(fco_api, res_uuid, status, res_type, time=5, step=24):
     return bool(result_set.totalCount)
 
 
-def get_resource(fco_api, res_uuid, res_type):
+def get_resource(fco_api, res_id, res_type=None, force_uuid=False):
     """
-    Get a resource by Id and type.
+    Get a resource by first checking for a resource with the name `res_id`.
+    If no results or multiple results are found, the next check is performed
+    for a resource with the UUID `res_id`. If a resource is found, it is
+    returned. If no resource and multiple resources were found with the name
+    query, a `ConflictingResourceError` is raised, otherwise a
+    `NoResourceError` is raised.
 
-    :param fco_api: FCO API object
-    :param res_uuid: Resource UUID
-    :param res_type: Resource type
-    :return: Resource type-compatible dict
+    :param fco_api: FCI API object
+    :param res_id: Resource name or UUID
+    :param res_type: Resource type (optional)
+    :param force_uuid: Force UUID check
+    :return: Resource of type-compatible object
     """
+    named = []
+    nsf = None
+    if not force_uuid:
+        fc = cobjects.FilterCondition(field='resourceName',
+                                      condition='IS_EQUAL_TO',
+                                      value=[res_id])
+        nsf = cobjects.SearchFilter(filterConditions=[fc])
+        if res_type is not None:
+            named = fco_api.listResources(searchFilter=nsf,
+                                          resourceType=res_type).list
+        else:
+            named = fco_api.listResources(searchFilter=nsf).list
+        if len(named) == 1:
+            return named[0]
+        else:
+            named = set(r.resourceUUID for r in named)
     fc = cobjects.FilterCondition(field='resourceUUID',
                                   condition='IS_EQUAL_TO',
-                                  value=[res_uuid])
+                                  value=[res_id])
     sf = cobjects.SearchFilter(filterConditions=[fc])
-    try:
-        return fco_api.listResources(searchFilter=sf, resourceType=res_type)\
-            .list[0]
-    except KeyError:
+    if res_type is not None:
+        uuid = fco_api.listResources(searchFilter=sf, resourceType=res_type) \
+            .list
+    else:
+        uuid = fco_api.listResources(searchFilter=sf).list
+    if len(uuid) == 1:
+        return uuid[0]
+    elif len(named):
+        raise ConflictingResourceError(res_type, nsf, named)
+    else:
         raise NoResourceError(res_type, sf)
 
 
@@ -123,7 +315,7 @@ def first_resource(fco_api, res_type):
 
     :param fco_api: FCO API object
     :param res_type: Resource type
-    :return: Resource type-compatible dict
+    :return: Resource type-compatible object
     """
     try:
         return fco_api.resourceType(resourceType=res_type).list[0]
@@ -140,7 +332,7 @@ def get_resource_type(fco_api, res_type, limit=False, number=200, page=0):
     :param limit: Use a query limit
     :param number: If a query limit is set, return this many results per page
     :param page: If aq query limit is set, return this page
-    :return: List of resource type-compatible dicts
+    :return: List of resource type-compatible objects
     """
     if limit:
         ql = cobjects.QueryLimit(from_=page*number, to=(page+1)*number,
@@ -157,7 +349,7 @@ def delete_resource(fco_api, res_uuid, res_type, cascade=False):
     :param res_uuid: Resource UUID
     :param res_type: Resource type
     :param cascade: Cascade the deletion
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return fco_api.deleteResource(resourceUUID=res_uuid, resourceType=res_type,
                                   cascade=cascade)
@@ -169,7 +361,7 @@ def get_prod_offer(fco_api, prod_offer_name):
 
     :param fco_api: FCO API object
     :param prod_offer_name: Product offer name
-    :return: Product Offer-compatible dict
+    :return: Product Offer-compatible object
     """
     fc1 = cobjects.FilterCondition(field='resourceName',
                                    condition='IS_EQUAL_TO',
@@ -194,7 +386,7 @@ def get_cluster_uuid(fco_api):
     SSC-recommended way to get a cluster.
 
     :param fco_api: FCO API object
-    :return: Cluster-compatible dict
+    :return: Cluster-compatible object
     """
     return first_resource(fco_api, 'CLUSTER').resourceUUID
 
@@ -210,7 +402,7 @@ def create_vdc(fco_api, cluster_uuid, name=None):
     :param fco_api: FCO API object
     :param cluster_uuid: Cluster UUID
     :param name: VDC name
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     if name is None:
         name = 'VDC ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -258,7 +450,7 @@ def create_network(fco_api, cluster_uuid, net_type, vdc_uuid, name=None):
     :param net_type: Network type; currently recommended 'IP'
     :param vdc_uuid: VDC UUID
     :param name: Network name
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     if name is None:
         name = 'NETWORK ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -328,7 +520,7 @@ def get_server_state(fco_api, server_uuid):
 
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     try:
         return get_resource(fco_api, server_uuid, 'SERVER').status
@@ -343,7 +535,7 @@ def change_server_status(fco_api, server_uuid, state):
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
     :param state: Server state
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     fco_api.changeServerStatus(serverUUID=server_uuid, newStatus=state,
                                safe=True)
@@ -356,7 +548,7 @@ def start_server(fco_api, server_uuid):
 
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return change_server_status(fco_api, server_uuid, 'RUNNING')
 
@@ -367,7 +559,7 @@ def stop_server(fco_api, server_uuid):
 
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return change_server_status(fco_api, server_uuid, 'STOPPED')
 
@@ -388,7 +580,7 @@ def create_server(fco_api, server_po_uuid, image_uuid, cluster_uuid, vdc_uuid,
     :param boot_disk_po_uuid: Server boot disk product offer UUID
     :param keys_uuid: SSH keys to provision
     :param name: Server name
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     if name is None:
         name = 'SERVER ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -477,7 +669,7 @@ def create_nic(fco_api, cluster_uuid, net_type, net_uuid, vdc_uuid, name=None):
     :param net_uuid: Network UUID
     :param vdc_uuid: VDC UUID
     :param name: NIC name
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     if name is None:
         name = 'NIC ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -496,7 +688,7 @@ def attach_nic(fco_api, server_uuid, nic_uuid, index):
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
     :param nic_uuid: NIC UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return fco_api.attachNetworkInterface(serverUUID=server_uuid,
                                           networkInterfaceUUID=nic_uuid,
@@ -510,7 +702,7 @@ def detach_nic(fco_api, server_uuid, nic_uuid):
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
     :param nic_uuid: NIC UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return fco_api.detachNic(serverUUID=server_uuid,
                              networkInterfaceUUID=nic_uuid)
@@ -542,7 +734,7 @@ def create_ssh_key(fco_api, public_key, name):
     :param fco_api: FCO API object
     :param public_key: Public key string
     :param name: SSH Key name
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     if name is None:
         name = 'SSHKEY ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -559,7 +751,7 @@ def attach_ssh_key(fco_api, server_uuid, key_uuid):
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
     :param key_uuid: Private key UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return fco_api.attachSSHKey(serverUUID=server_uuid, SSHKeyUUID=key_uuid)
 
@@ -571,6 +763,6 @@ def detach_ssh_key(fco_api, server_uuid, key_uuid):
     :param fco_api: FCO API object
     :param server_uuid: Server UUID
     :param key_uuid: Private key UUID
-    :return: Job-compatible dict
+    :return: Job-compatible object
     """
     return fco_api.detachSSHKey(serverUUID=server_uuid, SSHKeyUUID=key_uuid)
