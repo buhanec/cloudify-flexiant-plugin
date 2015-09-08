@@ -60,12 +60,10 @@ def rat_check(given_dict, all_, required, types, noneable,
         if v is None and noneable:
             continue
         elif issubclass(types[k], Typed):
-            if not isinstance(v, types[k]) and \
-                    not types[k].is_acceptable(v):
+            if not isinstance(v, types[k]) and not types[k].is_acceptable(v):
                 type_check[k] = (type(v).__name__, types[k].__name__)
         elif issubclass(types[k], Enum):
-            if not isinstance(v, types[k]) and \
-                    not hasattr(types[k], v):
+            if not isinstance(v, types[k]) and not hasattr(types[k], v):
                 type_check[k] = (type(v).__name__, types[k].__name__)
         elif not isinstance(v, types[k]):
             type_check[k] = (type(v).__name__, types[k].__name__)
@@ -86,13 +84,13 @@ def is_acceptable(inst, type_, noneable):
     :param noneable: can data be None
     :return: True or False depending on whether the check passed
     """
-    if inst is None and noneable:
+    if isinstance(inst, type_):
         pass
     elif issubclass(type_, Typed):
-        if not isinstance(inst, type_) and not type_.is_acceptable(inst):
+        if not type_.is_acceptable(inst):
             return False
     elif issubclass(type_, Enum):
-        if not isinstance(inst, type_) and not hasattr(type_, inst):
+        if not hasattr(type_, inst):
             return False
     elif issubclass(type_, datetime):
         try:
@@ -100,7 +98,7 @@ def is_acceptable(inst, type_, noneable):
             timedelta(hours=int(inst[-4:-2]), minutes=int(inst[-2:]))
         except ValueError:
             return False
-    elif not isinstance(inst, type_):
+    elif inst is None and not noneable:
         return False
     return True
 
@@ -132,5 +130,5 @@ def construct_data(inst, type_, noneable):
             return inst
     elif isinstance(inst, type_):
         return inst
-    raise ValueError('cannot construct type {} from data {}'.format(
-        type_.__name__, inst))
+    else:
+        return type_(inst)
