@@ -34,17 +34,17 @@ setup(
     license='LICENSE',
     zip_safe=False,
     install_requires=[
-        "cloudify-plugins-common>=3.3a5",
-        "enum34",
-        "requests"
+        'cloudify-plugins-common>=3.3a5',
+        'enum34',
+        'requests'
     ],
     test_requires=[
-        "cloudify-dsl-parser>=3.3a5",
-        "nose"
+        'cloudify-dsl-parser>=3.3a5',
+        'nose'
     ],
     dependency_links=[
-        "http://github.com/cloudify-cosmo/cloudify-rest-client/tarball/3.3m5#egg=cloudify-rest-client-3.3a5", # noqa
-        "http://github.com/cloudify-cosmo/cloudify-plugins-common/archive/3.3m5.zip#egg=cloudify-plugins-common-3.3a5",  # noqa
-        "http://github.com/cloudify-cosmo/cloudify-dsl-parser/tarball/3.3m5#egg=cloudify-dsl-parser-3.3a5"  # noqa
+        'http://github.com/cloudify-cosmo/cloudify-rest-client/tarball/3.3m5#egg=cloudify-rest-client-3.3a5',  # noqa
+        'http://github.com/cloudify-cosmo/cloudify-plugins-common/archive/3.3m5.zip#egg=cloudify-plugins-common-3.3a5',  # noqa
+        'http://github.com/cloudify-cosmo/cloudify-dsl-parser/tarball/3.3m5#egg=cloudify-dsl-parser-3.3a5'  # noqa
     ]
 )
