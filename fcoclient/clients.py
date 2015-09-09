@@ -116,9 +116,11 @@ def _rest_client_retry_and_auth(f):
             if r.status_code == rsc.too_many_requests:
                 error = 'Server busy (too many requests); waiting and ' \
                         'retrying {} more time(s).'.format(retry_count)
+            elif r.status_code == rsc.not_found:
+                error = 'Server responded with not found; will not retry.'
+                terminate = True
             elif r.status_code == rsc.bad_request:
-                error = 'Server responded with bad request; will not ' \
-                        'retry.'
+                error = 'Server responded with bad request; will not retry.'
                 terminate = True
             elif r.status_code == rsc.not_implemented:
                 error = 'Server responded with not implemented; will not' \
