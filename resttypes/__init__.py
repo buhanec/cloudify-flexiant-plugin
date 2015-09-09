@@ -84,7 +84,9 @@ def is_acceptable(inst, type_, noneable):
     :param noneable: can data be None
     :return: True or False depending on whether the check passed
     """
-    if isinstance(inst, type_):
+    if inst is None and noneable:
+        pass
+    elif isinstance(inst, type_):
         pass
     elif issubclass(type_, Typed):
         if not type_.is_acceptable(inst):
@@ -98,8 +100,6 @@ def is_acceptable(inst, type_, noneable):
             timedelta(hours=int(inst[-4:-2]), minutes=int(inst[-2:]))
         except ValueError:
             return False
-    elif inst is None and not noneable:
-        return False
     return True
 
 

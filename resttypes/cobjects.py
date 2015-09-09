@@ -154,8 +154,10 @@ class ComplexObject(Typed):
 
         # TODO: creating the data structure should make it acceptable
         if not self.is_acceptable(data):
-            raise Exception('Invalid data to create class {}'
-                            .format(type(self).__name__))
+            raise Exception('Invalid data to create class {}. Erroneous data: '
+                            '{}.'.format(self.__class__.__name__, ', '.join(
+                            '{} ({}) not {}'.format(k, v, t)
+                            for k, v, t in self.find_erroneous_data(data))))
 
         self._data = self.construct_data(data)
 
@@ -226,6 +228,29 @@ class ComplexObject(Typed):
         except KeyError:
             return False
         return not req or cls._noneable
+
+    @classmethod
+    def find_erroneous_data(cls, inst):
+        """
+        Temporary solution to list incorrect data.
+
+        :param inst: Instance of data to check
+        :return: Incorrect data
+        """
+        req = cls.REQUIRED_ATTRIBS.copy()
+        opt = cls.OPTIONAL_ATTRIBS.copy()
+        errors = set()
+        for k, v in inst.items():
+            if k not in cls.TYPES:
+                errors.add((k, v, 'bad key'))
+                continue
+            if k in req:
+                req.remove(k)
+            else:
+                opt.remove(k)
+            if not c_is_acceptable(v, cls.TYPES[k], cls._noneable):
+                errors.add((k, v, cls.TYPES[k]))
+        return errors
 
     @classmethod
     def construct_data(cls, inst):
