@@ -6,7 +6,7 @@ import resttypes.enums as enums
 from resttypes import to_str
 from resttypes import is_acceptable as c_is_acceptable
 from resttypes import construct_data as c_construct_data
-from typed import Typed, MetaTyped
+from typed import Typed, MetaTyped, _None
 from typed.factories import (List, Dict)
 
 from datetime import datetime
@@ -159,8 +159,8 @@ class ComplexObject(Typed):
 
         self._data = self.construct_data(data)
 
-    def untype(self, data=None):
-        if data is None:
+    def untype(self, data=_None):
+        if data is _None:
             data = self._data
         if isinstance(data, datetime):
             return data.strftime('%Y-%m-%dT%H:%M:%S') + '+0000'

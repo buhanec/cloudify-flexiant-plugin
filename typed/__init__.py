@@ -285,8 +285,9 @@ class Typed(object):
 
     # __hash__ = None
 
-    def untype(self, data=None):
-        data = data or self._data
+    def untype(self, data=_None):
+        if data is _None:
+            data = self._data
         if isinstance(data, list):
             untyped = list(data)
             for k, v in enumerate(untyped):
