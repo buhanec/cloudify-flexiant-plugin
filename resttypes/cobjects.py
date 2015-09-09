@@ -6,17 +6,127 @@ import resttypes.enums as enums
 from resttypes import to_str
 from resttypes import is_acceptable as c_is_acceptable
 from resttypes import construct_data as c_construct_data
-from typed import Typed
+from typed import Typed, MetaTyped
 from typed.factories import (List, Dict)
 
 from datetime import datetime
 
-# from cloudify import ctx
+
+class FilterList(list):
+
+    """A subclass of list used for a list of FilterConditions."""
+
+    def __and__(self, other):
+        if isinstance(other, FilterCondition):
+            return self + [other]
+        elif isinstance(other, FilterList):
+            return self + other
+        else:
+            raise TypeError('Incompatible type for creating a filter list: {}'
+                            .format(other.__class__.name))
+
+
+class FilterConditionMixin(object):
+
+    """Mixing for FilterCondition to allow for construction of lists."""
+
+    def __and__(self, other):
+        if isinstance(other, FilterCondition):
+            return FilterList([self, other])
+        elif isinstance(other, FilterList):
+            return [self] + other
+        else:
+            raise TypeError('Incompatible type for creating a filter list: {}'
+                            .format(other.__class__.name))
+
+
+class ComplexField(object):
+
+    """Complex field to construct filters with."""
+
+    def __init__(self, name, untype):
+        self.name = name
+        self.untype = untype
+
+    def _condition(self, condition, values):
+        if not isinstance(values, list):
+            values = [values]
+        values = map(str, map(self.untype, values))
+        return FilterCondition(field=self.name,
+                               condition=enums.Condition(condition),
+                               value=values)
+
+    def startswith(self, other):
+        return self._condition(enums.Condition.STARTS_WITH, other)
+
+    def endswith(self, other):
+        return self._condition(enums.Condition.ENDS_WITH, other)
+
+    def not_endswith(self, other):
+        return self._condition(enums.Condition.NOT_ENDS_WITH, other)
+
+    def not_startswith(self, other):
+        return self._condition(enums.Condition.NOT_STARTS_WITH, other)
+
+    def __eq__(self, other):
+        return self._condition(enums.Condition.IS_EQUAL_TO, other)
+
+    def __ne__(self, other):
+        return self._condition(enums.Condition.IS_NOT_EQUAL_TO, other)
+
+    def __gt__(self, other):
+        if isinstance(other, datetime):
+            condition = enums.Condition.LATER_THAN
+        else:
+            condition = enums.Condition.IS_GREATER_THAN
+        return self._condition(condition, other)
+
+    def __lt__(self, other):
+        if isinstance(other, datetime):
+            condition = enums.Condition.EARLIER_THAN
+        else:
+            condition = enums.Condition.IS_LESS_THAN
+        return self._condition(condition, other)
+
+    def __ge__(self, other):
+        return self._condition(enums.Condition.IS_GREATER_THAN_OR_EQUAL_TO,
+                               other)
+
+    def __le__(self, other):
+        return self._condition(enums.Condition.IS_LESS_THAN_OR_EQUAL_TO, other)
+
+    def contains(self, other):
+        return self._condition(enums.Condition.CONTAINS, other)
+
+    def between(self, other):
+        return self._condition(enums.Condition.BETWEEN, other)
+
+    def not_contains(self, other):
+        return self._condition(enums.Condition.NOT_CONTAINS, other)
+
+    def not_between(self, other):
+        return self._condition(enums.Condition.NOT_BETWEEN, other)
+
+
+class ComplexMeta(MetaTyped):
+
+    """Complex Object metaclass, used to create filters and queries easier."""
+
+    def __getattr__(cls, item):
+        if not hasattr(cls, 'ALL_ATTRIBS'):
+            raise AttributeError('No fields defined in class \'{}\''
+                                 .format(cls.__name__))
+        if item in cls.ALL_ATTRIBS:
+            return ComplexField(item, lambda v: cls.untype.__func__(None, v))
+        raise AttributeError('No such field in class \'{}\''.format(
+            cls.__name__))
 
 
 class ComplexObject(Typed):
 
     """Generic class for FCO REST API Complex Objects."""
+
+    __metaclass__ = ComplexMeta
 
     def __init__(self, data=None, **kwargs):
         """
@@ -55,7 +165,10 @@ class ComplexObject(Typed):
         if isinstance(data, datetime):
             return data.strftime('%Y-%m-%dT%H:%M:%S') + '+0000'
         else:
-            return super(ComplexObject, self).untype(data)
+            if self is not None:
+                return super(ComplexObject, self).untype(data)
+            else:
+                return Typed.untype.__func__(self, data)  # effectively same
 
     def __getattr__(self, attr):
         """
@@ -807,7 +920,7 @@ class ImagePermission(ComplexObject):
              'canBeDetachedFromServer': bool, 'canImage': bool}
 
 
-class FilterCondition(ComplexObject):
+class FilterCondition(FilterConditionMixin, ComplexObject):
 
     """FCO REST API FilterCondition complex object.
 
