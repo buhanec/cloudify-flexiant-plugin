@@ -115,3 +115,4 @@ When updating the definitions, care must be taken to ensure that:
 
 * `GenericObject` is used in place of `object`
 * `QueryField` operations match available operations in the `Condition` enum
+* `FilterCondition` requires the mixin `FilterConditionMixin`
