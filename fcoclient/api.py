@@ -31,12 +31,13 @@ class REST(object):
         :item: name of the endpoint
         :return: function representing the Endpoint
         """
-        self.logger.debug('REST API endpoint request: %s', item)
-        if not hasattr(endpoints, item):
-            raise AttributeError('API has no endpoint {}'.format(item))
+        endpoint = item[0].capitalize() + item[1:]
+        self.logger.debug('REST API endpoint request: %s', endpoint)
+        if not hasattr(endpoints, endpoint):
+            raise AttributeError('API has no endpoint {}'.format(endpoint))
 
         def wrapper(*args, **kwargs):
-            return self.query(item, *args, **kwargs)
+            return self.query(endpoint, *args, **kwargs)
         return wrapper
 
     def query(self, endpoint, parameters=None, data=None, validate=False,
@@ -51,7 +52,6 @@ class REST(object):
         :param kwargs: alternative method for supplying parameters or data
         :return: validated, data if validate true, otherwise only data
         """
-        endpoint = endpoint[0].capitalize() + endpoint[1:]
         endpoint = getattr(endpoints, endpoint)(parameters, data, **kwargs)
         type_, url = endpoint.endpoint
         payload = endpoint.untype()
