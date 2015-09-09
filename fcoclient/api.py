@@ -32,6 +32,8 @@ class REST(object):
         :return: function representing the Endpoint
         """
         self.logger.debug('REST API endpoint request: %s', item)
+        if not hasattr(endpoints, item):
+            raise AttributeError('API has no endpoint {}'.format(item))
 
         def wrapper(*args, **kwargs):
             return self.query(item, *args, **kwargs)
