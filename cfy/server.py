@@ -124,6 +124,7 @@ def create(fco_api, *args, **kwargs):
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
+    ctx.logger.info('vdc: %s', vdc)
     if vdc is not None:
         cluster_uuid = vdc.clusterUUID
         vdc_uuid = vdc.resourceUUID
@@ -146,7 +147,7 @@ def create(fco_api, *args, **kwargs):
                     'network_uuid: %s\n'
                     'server_po_uuid: %s\n'
                     'manager_key_uuid: %s\n'
-                    'boot_disk_po_uuid: %s\n',
+                    'boot_disk_po_uuid: %s',
                     image_uuid, cluster_uuid, vdc_uuid, network_uuid,
                     server_po_uuid, manager_key_uuid, boot_disk_po_uuid)
 
