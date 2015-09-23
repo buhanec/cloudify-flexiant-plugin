@@ -66,6 +66,9 @@ def _rest_client_retry_and_auth(f):
         url = '{service_url}/rest/user/{api_version}/{endpoint}'.format(
             service_url=self.service_url, api_version=REST_API_VERSION,
             endpoint=endpoint)
+        p_url = '/rest/user/{api_version}/{endpoint}'.format(
+            service_url=self.service_url, api_version=REST_API_VERSION,
+            endpoint=endpoint)
         retry_count = self.retry_count
         payload = kwargs.get(KW_PAYLOAD)
 
@@ -75,7 +78,7 @@ def _rest_client_retry_and_auth(f):
         while retry_count:
             terminate = False
 
-            self.logger.info('%s %s', f.__name__.upper(), url)
+            self.logger.info('%s %s', f.__name__.upper(), p_url)
             self.logger.debug('Client function: %s', f.__name__)
             self.logger.debug('Client URL: %s', url)
             self.logger.debug('Client data: %s', data)
