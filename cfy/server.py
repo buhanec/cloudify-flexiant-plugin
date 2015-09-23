@@ -106,6 +106,7 @@ def create(fco_api, *args, **kwargs):
     # Verify existence of private keys
     missing_keys = set()
     for key in private_keys:
+        ctx.logger.info('key: %s', ctx.get_resource(os.path.expanduser(key)))
         if not os.path.isfile(os.path.expanduser(key)):
             missing_keys.add(key)
     if missing_keys:
@@ -237,6 +238,7 @@ def create(fco_api, *args, **kwargs):
 
     # Provision private keys
     for key in private_keys:
+        ctx.get_resource
         key = os.path.expanduser(key)
         ssh = SSHClient()
         ssh.connect(server_ip, server_port, username, password)
