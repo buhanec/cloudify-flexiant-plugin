@@ -31,6 +31,7 @@ RT = enums.ResourceType
 PROP_RESOURCE_ID = 'resource_id'
 PROP_USE_EXISTING = 'use_existing'
 PROP_IMAGE = 'image'
+PROP_VDC = 'vdc'
 PROP_NET = 'network'
 PROP_SERVER_PO = 'server_type'
 PROP_CPU_COUNT = 'cpu_count'
@@ -91,6 +92,10 @@ def create(fco_api, *args, **kwargs):
 
     # Get configuration
     image = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
+    if _np[PROP_IMAGE]:
+        vdc = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
+    else:
+        vdc = None
     network = get_resource(fco_api, _np[PROP_NET], RT.NETWORK)
     server_po = get_resource(fco_api, _np[PROP_SERVER_PO], RT.PRODUCTOFFER)
     manager_key = get_resource(fco_api, _np[PROP_MANAGER_KEY], RT.SSHKEY)
@@ -109,8 +114,12 @@ def create(fco_api, *args, **kwargs):
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
-    cluster_uuid = image.clusterUUID
-    vdc_uuid = image.vdcUUID
+    if vdc is not None:
+        cluster_uuid = vdc.clusterUUID
+        vdc_uuid = vdc.resourceUUID
+    else:
+        cluster_uuid = image.clusterUUID
+        vdc_uuid = image.vdcUUID
     network_uuid = network.resourceUUID
     network_type = network.networkType
     server_po_uuid = server_po.resourceUUID

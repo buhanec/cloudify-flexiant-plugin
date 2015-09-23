@@ -16,6 +16,9 @@ node_types:
         default: false
       image:
         type: string
+      vdc:
+        type: string
+        default: ''
       network:
         type: string
       server_type:
