@@ -156,8 +156,9 @@ class ComplexObject(Typed):
         if not self.is_acceptable(data):
             raise Exception('Invalid data to create class {}. Erroneous data: '
                             '{}.'.format(self.__class__.__name__, ', '.join(
-                            '{} ({}) not {}'.format(k, v, t)
-                            for k, v, t in self.find_erroneous_data(data))))
+                                '{} ({}) not {}'.format(k, v, t)
+                                for k, v, t in self.find_erroneous_data(data))
+                            ))
 
         self._data = self.construct_data(data)
 
@@ -202,7 +203,6 @@ class ComplexObject(Typed):
     #         if c_is_acceptable(value, self.TYPES[attr], self._noneable):
     #             self._data[attr] = c_construct_data(value, self.TYPES[attr],
     #                                                 self._noneable)
-
 
     def __str__(self):
         return '({}){}'.format(self.__class__.__name__, str(self._data))
