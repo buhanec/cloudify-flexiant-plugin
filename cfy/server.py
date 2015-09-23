@@ -23,6 +23,7 @@ from cloudify.exceptions import NonRecoverableError
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes import enums, cobjects
 from paramiko import SSHClient
+from time import sleep
 import os
 
 
@@ -233,8 +234,8 @@ def create(fco_api, *args, **kwargs):
     server_ip = nic.ipAddresses[0].ipAddress
     server_port = 22
 
-    if not ssh_probe(server_ip, server_port, step=-1):
-        raise Exception('Starting server failed to complete in time!')
+    # if not ssh_probe(server_ip, server_port, step=-1):
+    #     raise Exception('Starting server failed to complete in time!')
 
     ctx.logger.info('Server READY')
 
@@ -243,7 +244,24 @@ def create(fco_api, *args, **kwargs):
 
     # Provision private keys
     ssh = SSHClient()
-    ssh.connect(server_ip, server_port, username, password)
+    ssh_attempts = -1
+    ssh_delay = 3
+    while ssh_attempts:
+        try:
+            ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
+            ssh.connect(server_ip, server_port, username, password,
+                        timeout=ssh_delay)
+            ctx.logger.info('SSH connection established')
+            break
+        except socket.timeout:
+            ssh_attempts -= 1
+        except socket.error as e:
+            if 'Errno 111' not in str(e):
+                raise
+            sleep(ssh_delay)
+        ssh_attempts -= 1
+    else:
+        raise Exception('Failed to provision keys in time')
     ssh.exec_command('mkdir ~/.ssh')
     ssh.exec_command('chmod 0700 ~/.ssh')
     for key, key_content in key_contents.items():
