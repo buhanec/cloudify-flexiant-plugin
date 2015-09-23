@@ -114,11 +114,11 @@ class ComplexMeta(MetaTyped):
 
     def __getattr__(cls, item):
         if not hasattr(cls, 'ALL_ATTRIBS'):
-            raise AttributeError('No fields defined in class \'{}\''
+            raise AttributeError('No fields defined in Complex Object \'{}\''
                                  .format(cls.__name__))
         if item in cls.ALL_ATTRIBS:
             return ComplexField(item, lambda v: cls.untype.__func__(None, v))
-        raise AttributeError('No such field in class \'{}\''.format(
+        raise AttributeError('No such field in Complex Object \'{}\''.format(
             cls.__name__))
 
 
@@ -174,16 +174,35 @@ class ComplexObject(Typed):
 
     def __getattr__(self, attr):
         """
-        Easily access FCO REST API Complex Object attributes.
+        Easily access FCO REST API Complex Object fields.
 
-        :param attr: attribute to access
-        :return: attribute value
+        :param attr: field to access
+        :return: field value
         """
         if attr not in self.ALL_ATTRIBS:
-            raise Exception('Complex Object {} does not have {}'
-                            .format(type(self).__name__, attr))
+            raise AttributeError('No such field in Complex Object \'{}\''
+                                 .format(self.__class__.__name__))
         else:
-            return self._data.get(attr)
+            try:
+                return self._data[attr]
+            except KeyError:
+                raise AttributeError('Field not set yet')
+
+    # def __setattr__(self, attr, value):
+    #     """
+    #     Allows for changes to the data through Complex Object fields.
+    #
+    #     :param attr: field to access
+    #     :param value: value to set to field
+    #     """
+    #     if attr not in self.ALL_ATTRIBS:
+    #         raise AttributeError('2 No such field in Complex Object \'{}\''
+    #                              .format(self.__class__.__name__))
+    #     else:
+    #         if c_is_acceptable(value, self.TYPES[attr], self._noneable):
+    #             self._data[attr] = c_construct_data(value, self.TYPES[attr],
+    #                                                 self._noneable)
+
 
     def __str__(self):
         return '({}){}'.format(self.__class__.__name__, str(self._data))
@@ -242,7 +261,7 @@ class ComplexObject(Typed):
         errors = set()
         for k, v in inst.items():
             if k not in cls.TYPES:
-                errors.add((k, v, 'bad key'))
+                errors.add((k, v, 'part of spec'))
                 continue
             if k in req:
                 req.remove(k)
