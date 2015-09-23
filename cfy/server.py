@@ -238,7 +238,7 @@ def create(fco_api, *args, **kwargs):
             ctx.logger.info('SSH Connection details: {}'.format(
                 ((server_ip, server_port, username, password, ssh_delay))))
             ssh.connect(server_ip, server_port, username, password,
-                        timeout=ssh_delay)
+                        timeout=ssh_delay, look_for_keys=False)
             ctx.logger.info('SSH connection established')
             break
         except socket.timeout:
