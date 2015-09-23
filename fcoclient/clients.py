@@ -31,7 +31,7 @@ PROP_CLIENT_API_USERNAME = 'api_uuid'
 PROP_CLIENT_API_PASSWORD = 'password'
 PROP_CLIENT_CUSTOMER = 'customer'
 PROP_CLIENT_SERVICE_URL = 'url'
-PROP_CLIENT_CA_CERT = 'ca_cert'
+PROP_CLIENT_CA_CERT = 'verify_ca_cert'
 
 # Configurable kwargs keys for client
 KW_PAYLOAD = 'payload'
