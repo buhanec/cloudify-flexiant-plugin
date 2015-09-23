@@ -63,7 +63,6 @@ def ssh_probe(server_ip, server_port=22, time=10, step=90):
     return bool(step)
 
 
-# TODO: completely rehaul
 @operation
 @with_fco_api
 @with_exceptions_handled
@@ -110,7 +109,10 @@ def create(fco_api, *args, **kwargs):
         if not os.path.isfile(os.path.expanduser(key)):
             missing_keys.add(key)
     if missing_keys:
-        raise Exception('Missing private keys: {}'.format(missing_keys))
+        raise Exception('Missing private keys: {}\nCurrent dir: {}\n'
+                        'Current dir contents: {}'.format(missing_keys,
+                                                          os.getcwd(),
+                                                          os.listdir('.')))
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
