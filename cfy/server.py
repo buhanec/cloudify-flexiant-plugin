@@ -22,7 +22,7 @@ from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes import enums, cobjects
-from paramiko import SSHClient
+from paramiko import SSHClient, AutoAddPolicy
 from time import sleep
 import os
 
@@ -227,6 +227,7 @@ def create(fco_api, *args, **kwargs):
 
     # Provision private keys
     ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh_attempts = -1
     ssh_delay = 3
     while ssh_attempts:
