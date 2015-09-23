@@ -4,13 +4,13 @@
 
 from __future__ import print_function
 from cfy import (create_ssh_key,
-                 wait_for_status,
+                 wait_for_cond,
                  get_resource,
                  delete_resource)
 from cloudify import ctx
 from cloudify.decorators import operation
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
-from resttypes import enums
+from resttypes import enums, cobjects
 import os
 from Crypto.PublicKey import RSA
 
@@ -75,8 +75,8 @@ def create(fco_api, *args, **kwargs):
 def delete(fco_api, *args, **kwargs):
     key_uuid = ctx.instance.runtime_properties.get(RPROP_UUID)
     job_uuid = delete_resource(fco_api, key_uuid, RT.SERVER, True).resourceUUID
-    if not wait_for_status(fco_api, job_uuid, enums.JobStatus.SUCCESSFUL,
-                           RT.JOB):
+    cond = cobjects.Job.status == enums.JobStatus.SUCCESSFUL
+    if not wait_for_cond(fco_api, job_uuid, cond, RT.JOB):
         raise Exception('Failed to delete SSH key')
 
 

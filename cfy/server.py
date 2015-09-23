@@ -7,7 +7,7 @@ from cfy import (create_server,
                  create_ssh_key,
                  attach_ssh_key,
                  wait_for_state,
-                 wait_for_status,
+                 wait_for_cond,
                  create_nic,
                  attach_nic,
                  get_resource,
@@ -21,9 +21,8 @@ from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
-from resttypes import enums
+from resttypes import enums, cobjects
 from paramiko import SSHClient
-from scp import SCPClient
 import os
 
 
@@ -86,9 +85,8 @@ def create(fco_api, *args, **kwargs):
         _rp[RPROP_IP] = server.nics[0].ipAddresses[0].ipAddress
         _rp[RPROP_USER] = server.initialUser
         _rp[RPROP_PASS] = server.initialPassword
-        return  _rp[RPROP_UUID], _rp[RPROP_IP], _rp[RPROP_USER], \
-                _rp[RPROP_PASS]
-
+        return (_rp[RPROP_UUID], _rp[RPROP_IP], _rp[RPROP_USER],
+                _rp[RPROP_PASS])
 
     # Get configuration
     image = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
@@ -216,9 +214,9 @@ def create(fco_api, *args, **kwargs):
 
     # Attach NIC
     if nic_uuid not in server_nics:
-        attach_nic_job = attach_nic(fco_api, server_uuid, nic_uuid, 1)
-        if not wait_for_status(fco_api, attach_nic_job.resourceUUID,
-                               enums.JobStatus.SUCCESSFUL, RT.JOB):
+        job_uuid = attach_nic(fco_api, server_uuid, nic_uuid, 1).resourceUUID
+        cond = cobjects.Job.status == enums.JobStatus.SUCCESSFUL
+        if not wait_for_cond(fco_api, job_uuid, cond, RT.JOB):
             raise Exception('Attaching NIC failed to complete in time!')
         ctx.logger.info('NICs attached')
     else:
@@ -249,10 +247,9 @@ def create(fco_api, *args, **kwargs):
     ssh.exec_command('mkdir ~/.ssh')
     ssh.exec_command('chmod 0700 ~/.ssh')
     for key, key_content in key_contents.items():
-        with SCPClient(ssh.get_transport()) as scp:
-            remote =  os.path.join('~', '.ssh', os.path.basename(key))
-            ssh.exec_command('echo \'{}\' > {}'.format(key_content, remote))
-            ssh.exec_command('chmod 0600 ' + remote)
+        remote = os.path.join('~', '.ssh', os.path.basename(key))
+        ssh.exec_command('echo \'{}\' > {}'.format(key_content, remote))
+        ssh.exec_command('chmod 0600 ' + remote)
 
     _rp[RPROP_UUID] = server_uuid
     _rp[RPROP_IP] = server_ip
@@ -277,8 +274,8 @@ def delete(fco_api, *args, **kwargs):
     server_uuid = ctx.instance.runtime_properties.get(RPROP_UUID)
     job_uuid = delete_resource(fco_api, server_uuid, RT.SERVER, True) \
         .resourceUUID
-    if not wait_for_status(fco_api, job_uuid, enums.JobStatus.SUCCESSFUL,
-                           RT.JOB):
+    cond = cobjects.Job.status == enums.JobStatus.SUCCESSFUL
+    if not wait_for_cond(fco_api, job_uuid, cond, RT.JOB):
         raise Exception('Failed to delete server')
 
 

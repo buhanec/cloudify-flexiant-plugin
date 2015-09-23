@@ -154,7 +154,7 @@ def wait_for_state(fco_api, res_uuid, state, res_type, time=5, step=24):
     return bool(result_set.totalCount)
 
 
-def wait_for_status(fco_api, res_uuid, status, res_type, time=5, step=24):
+def wait_for_cond(fco_api, res_uuid, cond, res_type, time=5, step=24):
     """
     SSC-recommended status checking function.
 
@@ -166,18 +166,11 @@ def wait_for_status(fco_api, res_uuid, status, res_type, time=5, step=24):
     :param step: Number of tries
     :return: True if desired status is reached, False otherwise
     """
-    fc1 = cobjects.FilterCondition(field='resourceUUID',
-                                   condition='IS_EQUAL_TO',
-                                   value=[res_uuid])
-    fc2 = cobjects.FilterCondition(field='status',
-                                   condition='IS_EQUAL_TO',
-                                   value=[status])
-    sf = cobjects.SearchFilter(filterConditions=[fc1, fc2])
-    result_set = fco_api.listResources(resourceType=res_type, searchFilter=sf)
+    filter_ = (R.resourceUUID == res_uuid) & cond
+    result_set = list_resource(fco_api, filter_, res_type)
 
     while step and not result_set.totalCount:
-        result_set = fco_api.listResources(resourceType=res_type,
-                                           searchFilter=sf)
+        result_set = list_resource(fco_api, filter_, res_type)
         sleep(time)
         step -= 1
 
