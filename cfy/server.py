@@ -253,7 +253,7 @@ def create(fco_api, *args, **kwargs):
                     shell.run('echo \'{}\' > {}'.format(key_content, remote))
                     shell.run('chmod 0600 ' + remote)
             except spur.ssh.ConnectionError as e:
-                if e.original_error not in {errno.ECONNREFUSED,
+                if e.original_error[0] not in {errno.ECONNREFUSED,
                                             errno.EHOSTUNREACH}:
                     raise
                 sleep(ssh_delay)
