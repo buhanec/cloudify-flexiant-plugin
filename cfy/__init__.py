@@ -66,7 +66,6 @@ class JobTimedout(Exception):
     """Exception raised with Job is timed out."""
 
 
-
 ###############################################################################
 # Job scheduling and dependencies
 ###############################################################################
@@ -79,7 +78,6 @@ def created_uuid_from_job(f, timeout=300, check_rate=3):
     rate.
 
     :param f: function to wrap
-    :param fco_api: FCO API object
     :param timeout: time in seconds to wait before cancelling the job
     :param check_rate: time in seconds to wait before checking job status
     :return: function wrapper
@@ -519,7 +517,7 @@ def create_server(fco_api, server_po_uuid, image_uuid, cluster_uuid, vdc_uuid,
         disk_name = 'DISK ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     else:
         disk_name = name + ' Disk'
-    disk_size = get_image(fco_api, image_uuid).size
+    disk_size = get_resource(fco_api, image_uuid, RT.IMAGE).size
     if not isinstance(keys_uuid, list):
         keys_uuid = [keys_uuid]
     disk = cobjects.Disk(storageCapabilities=None, clusterUUID=None,
