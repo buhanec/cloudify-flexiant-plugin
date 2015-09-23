@@ -8,25 +8,22 @@ node_types:
     derived_from: cloudify.nodes.Compute
     properties:
       auth: {}
-      image: {}
-      cluster: {}
-      vdc: {}
-      network: {}
-      network_type:
-        default: 'IP'
-      cpu_count:
-        default: ~
-      ram_amount:
-        default: ~
-      disk_size:
-        default: ~
+      image:
+        type: string
+      network:
+        type: string
       server_type:
-        default: 'Stanard Server'
+        type: string
+      cpu_count:
+        type: integer
+      ram_amount:
+        type: integer
       manager_key:
-        default: ~
+        type: string
       public_keys:
         default: []
       install_agent:
+        type: boolean
         default: true
       cloudify_agent:
         default: {}

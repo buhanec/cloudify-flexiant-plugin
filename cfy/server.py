@@ -3,10 +3,7 @@
 """Server stuff."""
 
 from __future__ import print_function
-from cfy import (get_image,
-                 get_vdc_uuid_by_cluster,
-                 create_vdc,
-                 create_server,
+from cfy import (create_server,
                  create_ssh_key,
                  attach_ssh_key,
                  wait_for_state,
@@ -32,14 +29,10 @@ from resttypes import enums
 RT = enums.ResourceType
 
 PROP_IMAGE = 'image'
-PROP_CLUSTER = 'cluster'
-PROP_VDC = 'vdc'
 PROP_NET = 'network'
-PROP_NET_TYPE = 'network_type'
 PROP_SERVER_PO = 'server_type'
 PROP_CPU_COUNT = 'cpu_count'
 PROP_RAM_AMOUNT = 'ram_amount'
-PROP_DISK_SIZE = 'disk_size'
 PROP_MANAGER_KEY = 'manager_key'
 PROP_PUBLIC_KEYS = 'public_keys'
 
@@ -71,84 +64,71 @@ def ssh_probe(server_ip, server_port=22, time=10, step=90):
 @with_fco_api
 @with_exceptions_handled
 def create(fco_api, *args, **kwargs):
-    rp_ = ctx.instance.runtime_properties
-    np_ = ctx.node.properties
-
     ctx.logger.info('starting server creation')
 
-    image_uuid = np_.get(PROP_IMAGE)
-    net_type = np_.get(PROP_NET_TYPE, 'IP')
-    cpu_count = np_.get(PROP_CPU_COUNT)
-    ram_amount = np_.get(PROP_RAM_AMOUNT)
-    public_keys = np_.get(PROP_PUBLIC_KEYS, [])
-    server_po_name = np_.get(PROP_SERVER_PO)
-    net_uuid = np_.get(PROP_NET)
-    key_uuid = np_.get(PROP_MANAGER_KEY)
+    # Ease of access
+    _rp = ctx.instance.runtime_properties
+    _np = ctx.node.properties
 
-    # Get cluster and VDC UUID
+    # Get configuration
+    image = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
+    network = get_resource(fco_api, _np[PROP_NET], RT.NETWORK)
+    server_po = get_resource(fco_api, _np[PROP_SERVER_PO], RT.PRODUCTOFFER)
+    manager_key = get_resource(fco_api, _np[PROP_MANAGER_KEY], RT.SSHKEY)
+    cpu_count = _np[PROP_CPU_COUNT]
+    ram_amount = _np[PROP_RAM_AMOUNT]
+    public_keys = _np[PROP_PUBLIC_KEYS] or []
 
-    ctx.logger.info('image UUID: ' + image_uuid)
-    ctx.logger.info('fco_api: ' + str(fco_api))
-
-    image = get_image(fco_api, image_uuid)
-    cluster_uuid = np_.get(PROP_CLUSTER) or image.clusterUUID
-    vdc_uuid = get_vdc_uuid_by_cluster(fco_api, cluster_uuid)
-
-    # Set up VDC
-    if not vdc_uuid:
-        vdc_uuid = create_vdc(fco_api, cluster_uuid)
-
-    ctx.logger.info('VDC UUID: ' + vdc_uuid)
-
-    # Get Server PO
-    server_po_uuid = get_resource(fco_api, server_po_name, RT.PRODUCTOFFER) \
-        .resourceUUID
-
-    ctx.logger.info('Server PO UUID: ' + server_po_uuid)
-
-    # Get disk PO
-    image_disk_po_name = '{} GB Storage Disk'.format(image.size)
-    boot_disk_po_uuid = get_resource(fco_api, image_disk_po_name,
+    # Generate missing configuration
+    image_uuid = image.resourceUUID
+    cluster_uuid = image.clusterUUID
+    vdc_uuid = image.vdcUUID
+    network_uuid = network.resourceUUID
+    network_type = network.networkType
+    server_po_uuid = server_po.resourceUUID
+    manager_key_uuid = manager_key.resourceUUID
+    # TODO: better way of determining suitable disk
+    boot_disk_po_uuid = get_resource(fco_api,
+                                     '{} GB Storage Disk'.format(image.size),
                                      RT.PRODUCTOFFER).resourceUUID
 
-    ctx.logger.info('Boot disk PO UUID: ' + boot_disk_po_uuid)
+    ctx.log.info('Configuration: \n'
+                 'image_uuid: %s\n'
+                 'cluster_uuid: %s\n'
+                 'vdc_uuid: %s\n'
+                 'network_uuid: %s\n'
+                 'server_po_uuid: %s\n'
+                 'manager_key_uuid: %s\n'
+                 'boot_disk_po_uuid: %s\n',
+                 image_uuid, cluster_uuid, vdc_uuid, network_uuid,
+                 server_po_uuid, manager_key_uuid, boot_disk_po_uuid)
 
     # Create server
     server_name = '{}{}_{}'.format(ctx.bootstrap_context.resources_prefix,
                                    ctx.deployment.id, ctx.instance.id)
     try:
-        server_uuid = rp_[RPROP_UUID]
+        server_uuid = _rp[RPROP_UUID]
     except KeyError:
-        key_obj = get_resource(fco_api, key_uuid, RT.SSHKEY)
-        keys = SSHKey.REQUIRED_ATTRIBS.copy()
-        keys.add('resourceUUID')
-        submit_key = {}
-        for k in keys:
-            try:
-                submit_key[k] = getattr(key_obj, k)
-            except AttributeError:
-                submit_key[k] = None
-        create_server_job = create_server(fco_api, server_po_uuid, image_uuid,
-                                          cluster_uuid, vdc_uuid, cpu_count,
-                                          ram_amount, boot_disk_po_uuid,
-                                          [submit_key], server_name)
-        server_uuid = create_server_job.itemUUID
-        rp_[RPROP_UUID] = server_uuid
+        # key_obj = get_resource(fco_api, key_uuid, RT.SSHKEY)
+        # keys = SSHKey.REQUIRED_ATTRIBS.copy()
+        # keys.add('resourceUUID')
+        # submit_key = {}
+        # for k in keys:
+        #     try:
+        #         submit_key[k] = getattr(manager_key, k)
+        #     except AttributeError:
+        #         submit_key[k] = None
+        server_uuid = create_server(fco_api, server_po_uuid, image_uuid,
+                                    cluster_uuid, vdc_uuid, cpu_count,
+                                    ram_amount, boot_disk_po_uuid,
+                                    [manager_key], server_name)
+        _rp[RPROP_UUID] = server_uuid
 
-    ctx.logger.info('Server UUID: ' + server_uuid)
+    ctx.logger.info('server_uuid: %s', server_uuid)
 
     server = get_resource(fco_api, server_uuid, RT.SERVER)
     server_nics = [nic.resourceUUID for nic in server.nics]
     server_keys = [key.resourceUUID for key in server.sshkeys]
-
-    # Add keys
-    for single_key in public_keys:
-        if single_key not in server_keys:
-            key_uuid = create_ssh_key(fco_api, single_key,
-                                      server_name + ' Key')
-            attach_ssh_key(fco_api, server_uuid, key_uuid)
-
-    ctx.logger.info('Keys attached')
 
     # Wait for server to be active
     if not wait_for_state(fco_api, server_uuid, enums.ResourceState.ACTIVE,
@@ -157,27 +137,28 @@ def create(fco_api, *args, **kwargs):
 
     ctx.logger.info('Server ACTIVE')
 
-    # Get network
-    if not net_uuid:
-        net_uuid = get_network_uuid_by_cluster(fco_api, net_type, cluster_uuid)
-    if not net_uuid:
-        net_uuid = create_network(fco_api, cluster_uuid, net_type, vdc_uuid,
-                                  server_name)
+    # Add keys
+    new_keys = set()
+    for key in public_keys:
+        if key not in server_keys:
+            key_uuid = create_ssh_key(fco_api, key, server_name + ' Key')
+            attach_ssh_key(fco_api, server_uuid, key_uuid)
+            new_keys.add(key_uuid)
 
-    ctx.logger.info('Network UUID: ' + net_uuid)
+    ctx.logger.info('Keys attached: %s', new_keys)
 
     # Create NIC
     try:
-        nic_uuid = rp_[RPROP_NIC]
+        nic_uuid = _rp[RPROP_NIC]
     except KeyError:
-        nic_uuid = create_nic(fco_api, cluster_uuid, net_type, net_uuid,
-                              vdc_uuid, server_name + ' NIC')
+        nic_uuid = create_nic(fco_api, cluster_uuid, network_type,
+                              network_uuid, vdc_uuid, server_name + ' NIC')
         if not wait_for_state(fco_api, nic_uuid, enums.ResourceState.ACTIVE,
                               RT.NIC):
             raise Exception('NIC failed to create in time!')
-        rp_[RPROP_NIC] = nic_uuid
+        _rp[RPROP_NIC] = nic_uuid
 
-    ctx.logger.info('NIC UUID: ' + nic_uuid)
+    ctx.logger.info('nic_uuid: %s', nic_uuid)
 
     # Stop server if started
     if get_server_status(fco_api, server_uuid) != enums.ServerStatus.STOPPED:
@@ -196,10 +177,6 @@ def create(fco_api, *args, **kwargs):
     else:
         ctx.logger.info('NICs already attached')
 
-    # attach any disks now
-
-    ctx.logger.info('Disks attached')
-
     # Start server if not started
     if get_server_status(fco_api, server_uuid) == enums.ServerStatus.STOPPED:
         if not start_server(fco_api, server_uuid):
@@ -207,8 +184,8 @@ def create(fco_api, *args, **kwargs):
 
     ctx.logger.info('Server RUNNING')
 
-    server_ip = get_resource(fco_api, nic_uuid, RT.NIC).ipAddresses[0] \
-        .ipAddress
+    nic = get_resource(fco_api, nic_uuid, RT.NIC)
+    server_ip = nic.ipAddresses[0].ipAddress
     server_port = 22
 
     if not ssh_probe(server_ip, server_port, step=-1):
@@ -219,14 +196,14 @@ def create(fco_api, *args, **kwargs):
     username = server.initialUser
     password = server.initialPassword
 
-    rp_[RPROP_UUID] = server_uuid
-    rp_[RPROP_IP] = server_ip
-    rp_[RPROP_USER] = username
-    rp_[RPROP_PASS] = password
+    _rp[RPROP_UUID] = server_uuid
+    _rp[RPROP_IP] = server_ip
+    _rp[RPROP_USER] = username
+    _rp[RPROP_PASS] = password
 
     server = get_resource(fco_api, server_uuid, RT.SERVER)
-    rp_[RPROP_DISKS] = [d.resourceUUID for d in server.disks]
-    rp_[RPROP_NICS] = [n.resourceUUID for n in server.nics]
+    _rp[RPROP_DISKS] = [d.resourceUUID for d in server.disks]
+    _rp[RPROP_NICS] = [n.resourceUUID for n in server.nics]
 
     ctx.logger.info('Server IP: ' + server_ip)
     ctx.logger.info('Server User: ' + username)

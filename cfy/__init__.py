@@ -403,24 +403,6 @@ def get_network_uuid_by_cluster(fco_api, net_type, cluster_uuid):
 
 
 ###############################################################################
-# Image stuff
-###############################################################################
-
-def get_image(fco_api, image_uuid):
-    """
-    Get image.
-
-    :param fco_api: FCO API object
-    :param image_uuid: Image UUID
-    :return: Job-compatible dict
-    """
-    result_set = list_resource(fco_api, R.resourceUUID == image_uuid, RT.IMAGE)
-    if result_set.totalCount:
-        return result_set.list[0]
-    raise RuntimeError('Image {} not found or available.'.format(image_uuid))
-
-
-###############################################################################
 # Server stuff
 ###############################################################################
 
