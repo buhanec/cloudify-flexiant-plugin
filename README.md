@@ -1,6 +1,11 @@
 cloudify-flexiant-plugin
 ========================
 
+This work has received funding from the European Union's Horizon 2020 research and innovation programme project [DICE](http://www.dice-h2020.eu/) under grant agreement No. 644869.
+
+About
+-----
+
 A [Cloudify](http://getcloudify.org/) plugin for [Flexiant](https://www.flexiant.com/)'s cloud platform. Currently supports spawning instances and semi-automagically assigning them all the necessary devices.
 
 Currently supports provisioning unconnected server instances, and has been designed to used and tested with an IP network type.
@@ -30,19 +35,18 @@ Any instance of `cloudify.flexiant.nodes.Server` accepts the following propertie
 
 * `auth`: An object/mapping containing authentication parameters for the FCO platform. The values required can all be gathered from the FCO CP. The available authentication methods are:
     * Username & password authentication, required keys: `username`, `password`, `customer` (as a UUID) and `url` (base URL pointing to the API)
-    * API user authentication, required keys: `api_uuid`, `password`, `customer` (as a UUID) and `url` (base URL pointing to the API)
+    * API user authentication, required keys: `api_user_uuid`, `api_password`, `customer` (as a UUID) and `url` (base URL pointing to the API)
     * API token authentication, required keys: `token`, `url` (base URL pointing to the API)
-    * All the API authentication methods also accept the optional boolean `ca_cert` (defaults to `True`) which determines whether the CA certificate should be checked when making API requests. Set to `False` if the CA certificate is not trusted on the Cloudify Manager instance.
-* `image_uuid`: UUID of the image to be used.
-* `key_uuid`: UUID of the key the manager should provision to gain access to instances (this key should most likely be the public key of the Cloudify Manager).
-* `net_uuid`: UUID of the network to be used. Not absolutely necessary since the plugin makes an attempt to find a suitable network itself, but the search may fail. In such a case, or when you need to use a specific network, specify this manually.
-* `net_type`: Type of network to search for, if `net_uuid` is not given. Defaults to `IP`.
-* `cpu_count`: Number of CPUs to be passed to the API Server request; accepts integers. Defaults to `2`.
-* `ram_amount`: Amount of RAM to be passed to the API Server request; accepts integers representing MB of ram Defaults to `2048`.
-* `server_type`: Server type / offer to use when provisioning the instance. Should be named Defaults to `Standard Server`.
+    * All the API authentication methods also accept the optional boolean `verify_ca_cert` (defaults to `True`) which determines whether the CA certificate should be checked when making API requests. Set to `False` if the CA certificate is not trusted on the Cloudify Manager instance.
+* `image`: Name or UUID of the image to be used.
+* `vdc`: Name or UUID of the VDC to be used
+* `manager_key`: Name or UUID of the key the manager should provision to gain access to instances (this key should most likely be the public key of the Cloudify Manager).
+* `network`: name or UUID of the network to be used.
+* `cpu_count`: Number of CPUs to be passed to the API Server request; accepts integers.
+* `ram_amount`: Amount of RAM in MB to be passed to the API Server request.
+* `server_type`: Name or UUID of the Server product offer to use.
 * `install_agent`: Boolean whether the Cloudify agent should be installed. Defaults to `true`.
 * `cloudify_agent`: An object/mapping containing additional Cloudify agent installation parameters. Defaults to an empty object.
-* `os`: A legacy property used for compatibility. A dict with the only key `type` containing valid OS types is required, by default the type is `linux`
 
 An example configuration of a node would luck like the following:
 ```yaml
@@ -51,17 +55,18 @@ node_templates:
     type: cloudify.flexiant.nodes.Server
     properties:
       auth:
-        api_uuid: 'api_user_uuid_goes_here'
-        password: 'api_password_goes_here'
+        api_user_uuid: 'api_user_uuid_goes_here'
+        api_password: 'api_password_goes_here'
         customer: 'customer_uuid_goes_here'
         url: 'https://cp.yourname.flexiant.net'
-        ca_cert: False
-      image_uuid: 'image_uuid_goes_here'
-      net_uuid: 'network_uuid_goes_here'
+        verify_ca_cert: False
+      image: 'image_uuid_goes_here'
+      vdc: 'vdc_uuid_goes_here'
+      network: 'network_uuid_goes_here'
       server_type: 'My Server Offer'
       cpu_count: 4
       ram_amount: 4096
-      key_uuid: 'manager_public_key_uuid_goes_here'
+      manager_key: 'manager_public_key_uuid_goes_here'
       cloudify_agent:  # As an example, if the Server instance is timing out with the lower default timeout
           wait_started_timeout: 60
           wait_started_interval: 3
@@ -80,10 +85,11 @@ And then checking the Information page for all the UUIDs under Related Resources
 
 The following UUIDs can be determined using this method:
 
-* `api_uuid` - find your API user under Users
-* `image_uuid`: find your image under Images
-* `key_uuid`: find your public key under SSH Keys
-* `net_uuid`: find your network under Networks
+* `api_user_uuid` - find your API user under Users
+* `image`: find your image under Images
+* `vdc`: find your image under VDCs
+* `network`: find your network under Networks
+* `manager_key`: find your public key under SSH Keys
 
 These UUIDs are generally related and can be found referenced multiple times across different pages.
 
@@ -94,7 +100,6 @@ The following have to be determined using a different procedure:
 
 ![Account Image](https://i.imgur.com/M7En9W4.png)
 
-* `net_type`: check [Flexiant documentation](http://docs.flexiant.com/display/DOCS/Introduction+to+Flexiant+Cloud+Orchestrator) for available types, currently only `IP` is supported without manual configuration and without tweaks to the plugin.
 * `server_type`: on the CP select Add Server and select the VDC in which your image is contained. The `server_type` can be any of your Configuration options (in the given image it is `0.5 GB / 1 CPU`:
 
 ![Configuration Image](https://i.imgur.com/Sl6cwVF.png)
@@ -106,7 +111,7 @@ To easily extend the plugin, the entire [FCO REST API](http://docs.flexiant.com/
 
 The API is hidden is auto-configured and exposed to higher-level plugin operations in the `cfy` package, where most of the expansion should theoretically take place. Ideally every type provided by Flexiant should have a matching entry in the plugin definition (`plugin.yaml`), with related operations being defined in the `cfy` package.
 
-The biggest drawbacks currently include the unfriendly UUID-filled configuration, lack of being able to reuse components an inability to create instances of anything but servers. Ideally lookups would be created using names, with fallbacks to UUIDs - more information should be, ideally, automagically determined, and manual settings only required when conflicts arise.
+Provisioning of private keys needs to be completed, as well as the addition of an SSH Key node.
 
 Updating the Defintions
 -----------------------
