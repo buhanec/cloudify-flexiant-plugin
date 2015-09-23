@@ -3,6 +3,7 @@
 """Provides utilities for simulating strongly-typed objects."""
 
 from enum import Enum
+from collections import Hashable
 
 __author__ = 'alen'
 
@@ -365,7 +366,7 @@ class TypedDict(Typed):  # TODO: setdefault, cmp/lt/gt/etc.
 
     @classmethod
     def _key_type_check(cls, key):
-        return key.__hash__ is not None
+        return key.__hash__ is not None or isinstance(key, Hashable)
 
     @classmethod
     def is_acceptable(cls, inst):
