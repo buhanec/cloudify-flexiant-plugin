@@ -75,7 +75,7 @@ def _rest_client_retry_and_auth(f):
         while retry_count:
             terminate = False
 
-            self.logger.info('%s %s', f.__name__.capitalize(), url)
+            self.logger.info('%s %s', f.__name__.upper(), url)
             self.logger.debug('Client function: %s', f.__name__)
             self.logger.debug('Client URL: %s', url)
             self.logger.debug('Client data: %s', data)
