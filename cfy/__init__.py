@@ -649,7 +649,7 @@ def detach_nic(fco_api, server_uuid, nic_uuid):
 ###############################################################################
 
 @created_uuid_from_job
-def create_ssh_key(fco_api, public_key, name=None):
+def create_ssh_key(fco_api, public_key, user=None, global_=False, name=None):
     """
     Create SSH key.
 
@@ -660,9 +660,13 @@ def create_ssh_key(fco_api, public_key, name=None):
     """
     if name is None:
         name = 'SSHKEY ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    key = cobjects.SSHKey(clusterUUID=None, resourceType=RT.SSHKEY,
-                          publicKey=public_key, sortOrder=None, vdcUUID=None,
-                          resourceName=name)
+    if user is None:
+        key = cobjects.SSHKey(resourceType=RT.SSHKEY, publicKey=public_key,
+                              resourceName=name, globalKey=global_)
+    else:
+        key = cobjects.SSHKey(resourceType=RT.SSHKEY, publicKey=public_key,
+                              resourceName=name, globalKey=global_,
+                              userName=user)
     return fco_api.createSSHKey(skeletonSSHKey=key)
 
 
