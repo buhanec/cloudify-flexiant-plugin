@@ -3,4 +3,6 @@
 -e git+https://github.com/cloudify-cosmo/cloudify-plugins-common@3.3m5#egg=cloudify-plugins-common==3.3a5
 enum34
 requests
+pycrypto
+scp
 nose

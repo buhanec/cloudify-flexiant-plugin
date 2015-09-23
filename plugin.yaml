@@ -8,6 +8,12 @@ node_types:
     derived_from: cloudify.nodes.Compute
     properties:
       auth: {}
+      resource_id:
+        type: string
+        default: ''
+      use_existing:
+        type: boolean
+        default: false
       image:
         type: string
       network:
@@ -20,6 +26,8 @@ node_types:
         type: integer
       manager_key:
         type: string
+      private_keys:
+        default: []
       public_keys:
         default: []
       install_agent:
@@ -40,3 +48,31 @@ node_types:
       cloudify.interfaces.validation:
         creation:
           implementation: flexiant.cfy.server.creation_validation
+
+  cloudify.flexiant.nodes.SSHKey:
+    derived_from: cloudify.nodes.Root
+    properties:
+      auth: {}
+      resource_id:
+        type: string
+        default: ''
+      use_existing:
+        type: boolean
+        default: false
+      private_key_path:
+        type: string
+      user:
+        type: string
+        default: ''
+      global:
+        type: boolean
+        default: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: flexiant.cfy.sshkey.create
+        delete:
+          implementation: flexiant.cfy.sshkey.delete
+      cloudify.interfaces.validation:
+        creation:
+          implementation: flexiant.cfy.sshkey.creation_validation
