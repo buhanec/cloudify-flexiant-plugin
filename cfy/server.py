@@ -105,15 +105,11 @@ def create(fco_api, *args, **kwargs):
 
     # Verify existence of private keys
     missing_keys = set()
+    key_contents = {}
     for key in private_keys:
-        ctx.logger.info('key: %s', ctx.get_resource(os.path.expanduser(key)))
-        if not os.path.isfile(os.path.expanduser(key)):
-            missing_keys.add(key)
+        key_contents[key] = ctx.get_resource(os.path.expanduser(key))
     if missing_keys:
-        raise Exception('Missing private keys: {}\nCurrent dir: {}\n'
-                        'Current dir contents: {}'.format(missing_keys,
-                                                          os.getcwd(),
-                                                          os.listdir('.')))
+        raise Exception('Missing private keys: {}'.format(missing_keys))
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
