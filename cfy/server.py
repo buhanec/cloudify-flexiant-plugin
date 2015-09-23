@@ -139,16 +139,16 @@ def create(fco_api, *args, **kwargs):
                                      '{} GB Storage Disk'.format(image.size),
                                      RT.PRODUCTOFFER).resourceUUID
 
-    ctx.log.info('Configuration: \n'
-                 'image_uuid: %s\n'
-                 'cluster_uuid: %s\n'
-                 'vdc_uuid: %s\n'
-                 'network_uuid: %s\n'
-                 'server_po_uuid: %s\n'
-                 'manager_key_uuid: %s\n'
-                 'boot_disk_po_uuid: %s\n',
-                 image_uuid, cluster_uuid, vdc_uuid, network_uuid,
-                 server_po_uuid, manager_key_uuid, boot_disk_po_uuid)
+    ctx.logger.info('Configuration: \n'
+                    'image_uuid: %s\n'
+                    'cluster_uuid: %s\n'
+                    'vdc_uuid: %s\n'
+                    'network_uuid: %s\n'
+                    'server_po_uuid: %s\n'
+                    'manager_key_uuid: %s\n'
+                    'boot_disk_po_uuid: %s\n',
+                    image_uuid, cluster_uuid, vdc_uuid, network_uuid,
+                    server_po_uuid, manager_key_uuid, boot_disk_po_uuid)
 
     # Create server
     server_name = '{}{}_{}'.format(ctx.bootstrap_context.resources_prefix,
