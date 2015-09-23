@@ -106,6 +106,7 @@ def create(fco_api, *args, **kwargs):
 
     # Verify existence of private keys
     missing_keys = set()
+    bad_permission_keys = set()
     key_contents = {}
     for key in private_keys:
         try:
@@ -113,10 +114,13 @@ def create(fco_api, *args, **kwargs):
         except NonRecoverableError as e:
             if 'HttpException: 404' in str(e):
                 missing_keys.add(key)
+            elif 'HttpException: 403' in str(e):
+                bad_permission_keys.add(key)
             else:
                 raise
-    if missing_keys:
-        raise Exception('Missing private keys: {}'.format(missing_keys))
+    if missing_keys or bad_permission_keys:
+        raise Exception('Missing private keys: {}\nBad permission keys: {}'
+                        .format(missing_keys, bad_permission_keys))
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
