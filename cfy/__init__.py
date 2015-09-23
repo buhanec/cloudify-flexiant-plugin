@@ -419,7 +419,8 @@ def change_server_status(fco_api, server_uuid, status):
     """
     fco_api.changeServerStatus(serverUUID=server_uuid, newStatus=status,
                                safe=True)
-    return wait_for_status(fco_api, server_uuid, status, RT.SERVER)
+    cond = cobjects.Server.status == enums.ServerStatus(status)
+    return wait_for_cond(fco_api, server_uuid, cond, RT.SERVER)
 
 
 def start_server(fco_api, server_uuid):
