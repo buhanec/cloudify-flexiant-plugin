@@ -235,6 +235,8 @@ def create(fco_api, *args, **kwargs):
     while ssh_attempts:
         try:
             ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
+            ctx.logger.info('SSH Connection details: {}'.format(
+                ((server_ip, server_port, username, password, ssh_delay))))
             ssh.connect(server_ip, server_port, username, password,
                         timeout=ssh_delay)
             ctx.logger.info('SSH connection established')
@@ -243,6 +245,7 @@ def create(fco_api, *args, **kwargs):
             ssh_attempts -= 1
         except socket.error as e:
             if e[0] not in {errno.ECONNREFUSED, errno.EHOSTUNREACH}:
+                ctx.logger.info('SSH connection failed: %s', e[0])
                 raise
             sleep(ssh_delay)
         ssh_attempts -= 1
