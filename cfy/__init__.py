@@ -278,22 +278,6 @@ def delete_resource(fco_api, res_uuid, res_type, cascade=False):
                                   cascade=cascade)
 
 
-def get_prod_offer(fco_api, prod_offer_name):
-    """
-    Get product offer from product offer name.
-
-    :param fco_api: FCO API object
-    :param prod_offer_name: Product offer name
-    :return: Product Offer-compatible object
-    """
-    filter_ = ((R.resourceName == prod_offer_name) &
-               (R.resourceState == enums.ResourceState.ACTIVE))
-    result_set = list_resource(fco_api, filter_, RT.PRODUCTOFFER)
-    if result_set.totalCount:
-        return result_set.list[0]
-    raise NoResourceError(RT.PRODUCTOFFER, filter_)
-
-
 ###############################################################################
 # Cluster stuff
 ###############################################################################

@@ -3,13 +3,9 @@
 """Server stuff."""
 
 from __future__ import print_function
-from cfy import (JobFailed,
-                 JobCancelled,
-                 JobTimedout,
-                 get_image,
+from cfy import (get_image,
                  get_vdc_uuid_by_cluster,
                  create_vdc,
-                 get_prod_offer,
                  create_server,
                  create_ssh_key,
                  attach_ssh_key,
