@@ -19,6 +19,7 @@ import socket
 import errno
 from cloudify import ctx
 from cloudify.decorators import operation
+from cloudify.exceptions import NonRecoverableError
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes import enums
 from paramiko import SSHClient
@@ -107,7 +108,13 @@ def create(fco_api, *args, **kwargs):
     missing_keys = set()
     key_contents = {}
     for key in private_keys:
-        key_contents[key] = ctx.get_resource(os.path.expanduser(key))
+        try:
+            key_contents[key] = ctx.get_resource(os.path.expanduser(key))
+        except NonRecoverableError as e:
+            if 'HttpException: 404' in str(e):
+                missing_keys.add(key)
+            else:
+                raise
     if missing_keys:
         raise Exception('Missing private keys: {}'.format(missing_keys))
 
@@ -233,17 +240,15 @@ def create(fco_api, *args, **kwargs):
     password = server.initialPassword
 
     # Provision private keys
-    for key in private_keys:
-        ctx.get_resource
-        key = os.path.expanduser(key)
-        ssh = SSHClient()
-        ssh.connect(server_ip, server_port, username, password)
-        ssh.exec_command('mkdir ~/.ssh')
-        ssh.exec_command('chmod 0700 ~/.ssh')
+    ssh = SSHClient()
+    ssh.connect(server_ip, server_port, username, password)
+    ssh.exec_command('mkdir ~/.ssh')
+    ssh.exec_command('chmod 0700 ~/.ssh')
+    for key, key_content in key_contents.items():
         with SCPClient(ssh.get_transport()) as scp:
-            remote_key =  os.path.join('~', '.ssh', os.path.basename(key))
-            scp.put(key, remote_key)
-            ssh.exec_command('chmod 0600 ' + remote_key)
+            remote =  os.path.join('~', '.ssh', os.path.basename(key))
+            ssh.exec_command('echo \'{}\' > {}'.format(key_content, remote))
+            ssh.exec_command('chmod 0600 ' + remote)
 
     _rp[RPROP_UUID] = server_uuid
     _rp[RPROP_IP] = server_ip
