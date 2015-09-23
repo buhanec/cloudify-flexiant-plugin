@@ -75,19 +75,16 @@ def _rest_client_retry_and_auth(f):
         while retry_count:
             terminate = False
 
-            self.logger.info('Client function: %s', f.__name__)
-            self.logger.info('Client URL: %s', url)
-            self.logger.info('Client data: %s', data)
+            self.logger.info('%s %s', f,__name__.capitalize, url)
+            self.logger.debug('Client function: %s', f.__name__)
+            self.logger.debug('Client URL: %s', url)
+            self.logger.debug('Client data: %s', data)
             r = f(self, url, payload, self.auth, self.headers,
                   self.verify)
 
             self.logger.debug('Client final URL: {}'.format(r.url))
-            if len(r.content) > 60:
-                self.logger.info('Content: {}'.format(r.content[:57] + '...'))
-                self.logger.debug('Full content: {}'.format(r.content))
-            else:
-                self.logger.info('Content: {}'.format(r.content))
-            self.logger.info('Status code: {}'.format(r.status_code))
+            self.logger.debug('Full content: {}'.format(r.content))
+            self.logger.debug('Status code: {}'.format(r.status_code))
 
             if r.status_code == rsc.accepted or r.status_code == rsc.ok:
                 self.logger.debug('=' * 60)
