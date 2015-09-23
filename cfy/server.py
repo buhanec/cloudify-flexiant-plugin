@@ -40,7 +40,7 @@ PROP_SERVER_PO = 'server_type'
 PROP_CPU_COUNT = 'cpu_count'
 PROP_RAM_AMOUNT = 'ram_amount'
 PROP_DISK_SIZE = 'disk_size'
-PROP_KEY = 'ssh_key'
+PROP_MANAGER_KEY = 'manager_key'
 PROP_PUBLIC_KEYS = 'public_keys'
 
 RPROP_UUID = 'uuid'
@@ -83,7 +83,7 @@ def create(fco_api, *args, **kwargs):
     public_keys = np_.get(PROP_PUBLIC_KEYS, [])
     server_po_name = np_.get(PROP_SERVER_PO)
     net_uuid = np_.get(PROP_NET)
-    key_uuid = np_.get(PROP_KEY)
+    key_uuid = np_.get(PROP_MANAGER_KEY)
 
     # Get cluster and VDC UUID
 
