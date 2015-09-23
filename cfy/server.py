@@ -93,7 +93,7 @@ def create(fco_api, *args, **kwargs):
     # Get configuration
     image = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
     if _np[PROP_IMAGE]:
-        vdc = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
+        vdc = get_resource(fco_api, _np[PROP_VDC], RT.VDC)
     else:
         vdc = None
     network = get_resource(fco_api, _np[PROP_NET], RT.NETWORK)
@@ -124,7 +124,6 @@ def create(fco_api, *args, **kwargs):
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
-    ctx.logger.info('vdc: %s', vdc)
     if vdc is not None:
         cluster_uuid = vdc.clusterUUID
         vdc_uuid = vdc.resourceUUID
