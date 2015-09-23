@@ -256,7 +256,7 @@ def create(fco_api, *args, **kwargs):
         except socket.timeout:
             ssh_attempts -= 1
         except socket.error as e:
-            if 'Errno 111' not in str(e):
+            if 'Errno 111' not in str(e) or 'Error 113' not in str(e):
                 raise
             sleep(ssh_delay)
         ssh_attempts -= 1
