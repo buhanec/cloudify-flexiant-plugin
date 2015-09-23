@@ -22,7 +22,7 @@ node_types:
         default: ~
       server_type:
         default: 'Stanard Server'
-      ssh_key:
+      manager_key:
         default: ~
       public_keys:
         default: []
