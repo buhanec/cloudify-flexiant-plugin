@@ -9,8 +9,6 @@ from cfy import (create_server,
                  wait_for_state,
                  wait_for_status,
                  create_nic,
-                 get_network_uuid_by_cluster,
-                 create_network,
                  attach_nic,
                  get_resource,
                  get_server_status,
@@ -22,18 +20,23 @@ import errno
 from cloudify import ctx
 from cloudify.decorators import operation
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
-from resttypes.cobjects import SSHKey
 from resttypes import enums
+from paramiko import SSHClient
+from scp import SCPClient
+import os
 
 
 RT = enums.ResourceType
 
+PROP_RESOURCE_ID = 'resource_id'
+PROP_USE_EXISTING = 'use_existing'
 PROP_IMAGE = 'image'
 PROP_NET = 'network'
 PROP_SERVER_PO = 'server_type'
 PROP_CPU_COUNT = 'cpu_count'
 PROP_RAM_AMOUNT = 'ram_amount'
 PROP_MANAGER_KEY = 'manager_key'
+PROP_PRIVATE_KEYS = 'private_keys'
 PROP_PUBLIC_KEYS = 'public_keys'
 
 RPROP_UUID = 'uuid'
@@ -70,6 +73,22 @@ def create(fco_api, *args, **kwargs):
     _rp = ctx.instance.runtime_properties
     _np = ctx.node.properties
 
+    # Check if existing server is to be used
+    if _np[PROP_USE_EXISTING]:
+        server = get_resource(fco_api, _np[PROP_RESOURCE_ID, RT.SERVER])
+        if not server.nics:
+            raise Exception('No NICs attached to server')
+        _rp[RPROP_UUID] = server.resourceUUID
+        _rp[RPROP_DISKS] = [d.resourceUUID for d in server.disks]
+        _rp[RPROP_NIC] = server.nics[0].resourceUUID
+        _rp[RPROP_NICS] = [n.resourceUUID for n in server.nics]
+        _rp[RPROP_IP] = server.nics[0].ipAddresses[0].ipAddress
+        _rp[RPROP_USER] = server.initialUser
+        _rp[RPROP_PASS] = server.initialPassword
+        return  _rp[RPROP_UUID], _rp[RPROP_IP], _rp[RPROP_USER], \
+                _rp[RPROP_PASS]
+
+
     # Get configuration
     image = get_resource(fco_api, _np[PROP_IMAGE], RT.IMAGE)
     network = get_resource(fco_api, _np[PROP_NET], RT.NETWORK)
@@ -78,6 +97,15 @@ def create(fco_api, *args, **kwargs):
     cpu_count = _np[PROP_CPU_COUNT]
     ram_amount = _np[PROP_RAM_AMOUNT]
     public_keys = _np[PROP_PUBLIC_KEYS] or []
+    private_keys = _np[PROP_PRIVATE_KEYS] or []
+
+    # Verify existence of private keys
+    missing_keys = set()
+    for key in private_keys:
+        if not os.path.isfile(os.path.expanduser(key)):
+            missing_keys.add(key)
+    if missing_keys:
+        raise Exception('Missing private keys: {}'.format(missing_keys))
 
     # Generate missing configuration
     image_uuid = image.resourceUUID
@@ -195,6 +223,18 @@ def create(fco_api, *args, **kwargs):
 
     username = server.initialUser
     password = server.initialPassword
+
+    # Provision private keys
+    for key in private_keys:
+        key = os.path.expanduser(key)
+        ssh = SSHClient()
+        ssh.connect(server_ip, server_port, username, password)
+        ssh.exec_command('mkdir ~/.ssh')
+        ssh.exec_command('chmod 0700 ~/.ssh')
+        with SCPClient(ssh.get_transport()) as scp:
+            remote_key =  os.path.join('~', '.ssh', os.path.basename(key))
+            scp.put(key, remote_key)
+            ssh.exec_command('chmod 0600 ' + remote_key)
 
     _rp[RPROP_UUID] = server_uuid
     _rp[RPROP_IP] = server_ip
