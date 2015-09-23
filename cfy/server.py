@@ -50,20 +50,6 @@ RPROP_USER = 'username'
 RPROP_PASS = 'password'
 
 
-def ssh_probe(server_ip, server_port=22, time=10, step=90):
-    while step:
-        ctx.logger.info('SSH probing [{}]'.format(step))
-        try:
-            s = socket.create_connection((server_ip, server_port), time)
-            s.close()
-            break
-        except socket.error, msg:
-            if str(msg[0]) == str(errno.ECONNREFUSED):
-                break
-            step -= 1
-    return bool(step)
-
-
 @operation
 @with_fco_api
 @with_exceptions_handled
@@ -234,9 +220,6 @@ def create(fco_api, *args, **kwargs):
     server_ip = nic.ipAddresses[0].ipAddress
     server_port = 22
 
-    # if not ssh_probe(server_ip, server_port, step=-1):
-    #     raise Exception('Starting server failed to complete in time!')
-
     ctx.logger.info('Server READY')
 
     username = server.initialUser
@@ -256,7 +239,7 @@ def create(fco_api, *args, **kwargs):
         except socket.timeout:
             ssh_attempts -= 1
         except socket.error as e:
-            if 'Errno 111' not in str(e) or 'Error 113' not in str(e):
+            if e[0] not in {errno.ECONNREFUSED, errno.EHOSTUNREACH}:
                 raise
             sleep(ssh_delay)
         ssh_attempts -= 1
