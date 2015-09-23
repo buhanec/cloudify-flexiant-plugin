@@ -160,7 +160,7 @@ def wait_for_cond(fco_api, res_uuid, cond, res_type, time=5, step=24):
 
     :param fco_api: FCO API object
     :param res_uuid: Resource UUID to monitor
-    :param status: Desired resource status
+    :param cond: Desired condition to be satisfied
     :param res_type: Resource type
     :param time: Time to wait before tries in seconds
     :param step: Number of tries
