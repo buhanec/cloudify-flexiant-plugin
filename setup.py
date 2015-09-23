@@ -37,8 +37,7 @@ setup(
         # 'cloudify-plugins-common>=3.3a5',
         'cloudify-plugins-common>=3.3a4',
         'enum34',
-        'requests',
-        'futures'
+        'requests'
     ],
     test_requires=[
         # 'cloudify-dsl-parser>=3.3a5',
