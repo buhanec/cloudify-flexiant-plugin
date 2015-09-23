@@ -24,6 +24,7 @@ from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes import enums, cobjects
 from paramiko import SSHClient, AutoAddPolicy
 from time import sleep
+from subprocess import call
 import os
 
 
@@ -227,6 +228,7 @@ def create(fco_api, *args, **kwargs):
 
     # Provision private keys
     ssh = SSHClient()
+    call(['ssh-keygen', '-R', server_ip])
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh_attempts = -1
     ssh_delay = 3
