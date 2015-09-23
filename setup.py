@@ -39,6 +39,7 @@ setup(
         'enum34',
         'requests',
         'pycrypto',
+        'paramiko',
         'scp'
     ],
     test_requires=[

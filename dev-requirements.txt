@@ -4,5 +4,6 @@
 enum34
 requests
 pycrypto
+paramiko
 scp
 nose
