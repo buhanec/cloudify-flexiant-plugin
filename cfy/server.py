@@ -231,36 +231,36 @@ def create(fco_api, *args, **kwargs):
     ssh_attempts = -1
     ssh_delay = 3
 
-    # Spur test
-    while ssh_attempts:
-        ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
-        shell = spur.SshShell(
-            hostname=server_ip,
-            port=server_port,
-            username=username,
-            password=password,
-            shell_type=spur.ssh.ShellTypes.minimal,
-            missing_host_key=spur.ssh.MissingHostKey.accept
-        )
-        with shell:
-            try:
-                ctx.logger.info('Creating & chmoding .ssh')
-                shell.run(['mkdir', '~/.ssh'])
-                shell.run(['chmod', '0700', '~/.ssh'])
-                for key, key_content in key_contents.items():
-                    ctx.logger.info('Adding private key: ' + remote)
-                    remote = os.path.join('~', '.ssh', os.path.basename(key))
-                    shell.run(['echo', "'{}'".format(key_content), '>',
-                               remote])
-                    shell.run(['chmod', '0600', remote])
-            except spur.ssh.ConnectionError as e:
-                if e.original_error[0] not in {errno.ECONNREFUSED,
-                                            errno.EHOSTUNREACH}:
-                    raise
-                sleep(ssh_delay)
-            ssh_attempts -= 1
-    else:
-        raise Exception('Failed to provision keys in time')
+    # # Spur test
+    # while ssh_attempts:
+    #     ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
+    #     shell = spur.SshShell(
+    #         hostname=server_ip,
+    #         port=server_port,
+    #         username=username,
+    #         password=password,
+    #         shell_type=spur.ssh.ShellTypes.minimal,
+    #         missing_host_key=spur.ssh.MissingHostKey.accept
+    #     )
+    #     with shell:
+    #         try:
+    #             ctx.logger.info('Creating & chmoding .ssh')
+    #             shell.run(['mkdir', '~/.ssh'])
+    #             shell.run(['chmod', '0700', '~/.ssh'])
+    #             for key, key_content in key_contents.items():
+    #                 ctx.logger.info('Adding private key: ' + remote)
+    #                 remote = os.path.join('~', '.ssh', os.path.basename(key))
+    #                 shell.run(['echo', "'{}'".format(key_content), '>',
+    #                            remote])
+    #                 shell.run(['chmod', '0600', remote])
+    #         except spur.ssh.ConnectionError as e:
+    #             if e.original_error[0] not in {errno.ECONNREFUSED,
+    #                                         errno.EHOSTUNREACH}:
+    #                 raise
+    #             sleep(ssh_delay)
+    #         ssh_attempts -= 1
+    # else:
+    #     raise Exception('Failed to provision keys in time')
 
     # # Provision private keys
     # ssh = SSHClient()
