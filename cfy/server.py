@@ -23,6 +23,8 @@ from cloudify.exceptions import NonRecoverableError
 from cfy.helpers import (with_fco_api, with_exceptions_handled)
 from resttypes import enums, cobjects
 from paramiko import SSHClient, AutoAddPolicy
+import spur
+import spur.ssh
 from time import sleep
 from subprocess import call
 import os
@@ -226,37 +228,69 @@ def create(fco_api, *args, **kwargs):
     username = server.initialUser
     password = server.initialPassword
 
-    # Provision private keys
-    ssh = SSHClient()
-    call(['ssh-keygen', '-R', server_ip])
-    ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh_attempts = -1
     ssh_delay = 3
+
+    # Spur test
     while ssh_attempts:
-        try:
-            ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
-            ctx.logger.info('SSH Connection details: {}'.format(
-                ((server_ip, server_port, username, password, ssh_delay))))
-            ssh.connect(server_ip, server_port, username, password,
-                        timeout=ssh_delay, look_for_keys=False)
-            ctx.logger.info('SSH connection established')
-            break
-        except socket.timeout:
+        ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
+        shell = spur.SshShell(
+            hostname=server_ip,
+            port=server_port,
+            username=username,
+            password=password,
+            shell_type=spur.ssh.ShellTypes.minimal,
+            missing_host_key=spur.ssh.MissingHostKey.accept
+        )
+        with shell:
+            try:
+                ctx.logger.info('Creating & chmoding .ssh')
+                shell.run('mkdir ~/.ssh')
+                shell.run('chmod 0700 ~/.ssh')
+                for key, key_content in key_contents.items():
+                    ctx.logger.info('Adding private key: ' + remote)
+                    remote = os.path.join('~', '.ssh', os.path.basename(key))
+                    shell.run('echo \'{}\' > {}'.format(key_content, remote))
+                    shell.run('chmod 0600 ' + remote)
+            except spur.ssh.ConnectionError as e:
+                if e.original_error not in {errno.ECONNREFUSED,
+                                            errno.EHOSTUNREACH}:
+                    raise
+                sleep(ssh_delay)
             ssh_attempts -= 1
-        except socket.error as e:
-            if e[0] not in {errno.ECONNREFUSED, errno.EHOSTUNREACH}:
-                ctx.logger.info('SSH connection failed: %s', e[0])
-                raise
-            sleep(ssh_delay)
-        ssh_attempts -= 1
     else:
         raise Exception('Failed to provision keys in time')
-    ssh.exec_command('mkdir ~/.ssh')
-    ssh.exec_command('chmod 0700 ~/.ssh')
-    for key, key_content in key_contents.items():
-        remote = os.path.join('~', '.ssh', os.path.basename(key))
-        ssh.exec_command('echo \'{}\' > {}'.format(key_content, remote))
-        ssh.exec_command('chmod 0600 ' + remote)
+
+    # # Provision private keys
+    # ssh = SSHClient()
+    # call(['ssh-keygen', '-R', server_ip])
+    # ssh.set_missing_host_key_policy(AutoAddPolicy())
+    #
+    # while ssh_attempts:
+    #     try:
+    #         ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
+    #         ctx.logger.info('SSH Connection details: {}'.format(
+    #             ((server_ip, server_port, username, password, ssh_delay))))
+    #         ssh.connect(server_ip, server_port, username, password,
+    #                     timeout=ssh_delay, look_for_keys=False)
+    #         ctx.logger.info('SSH connection established')
+    #         break
+    #     except socket.timeout:
+    #         ssh_attempts -= 1
+    #     except socket.error as e:
+    #         if e[0] not in {errno.ECONNREFUSED, errno.EHOSTUNREACH}:
+    #             ctx.logger.info('SSH connection failed: %s', e[0])
+    #             raise
+    #         sleep(ssh_delay)
+    #     ssh_attempts -= 1
+    # else:
+    #     raise Exception('Failed to provision keys in time')
+    # ssh.exec_command('mkdir ~/.ssh')
+    # ssh.exec_command('chmod 0700 ~/.ssh')
+    # for key, key_content in key_contents.items():
+    #     remote = os.path.join('~', '.ssh', os.path.basename(key))
+    #     ssh.exec_command('echo \'{}\' > {}'.format(key_content, remote))
+    #     ssh.exec_command('chmod 0600 ' + remote)
 
     _rp[RPROP_UUID] = server_uuid
     _rp[RPROP_IP] = server_ip

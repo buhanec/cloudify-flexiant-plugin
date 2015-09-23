@@ -40,6 +40,7 @@ setup(
         'requests',
         'pycrypto',
         'paramiko',
+        'spur',
         'scp'
     ],
     test_requires=[
