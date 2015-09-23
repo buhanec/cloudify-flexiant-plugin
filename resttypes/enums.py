@@ -17,6 +17,16 @@ class PrintableEnum(Enum):
         """Return value suitable for REST API query."""
         return self.value
 
+    def __eq__(self, other):
+        if isinstance(other, basestring):
+            return self.value == other
+        return super(PrintableEnum, self).__eq__(other)
+
+    def __ne__(self, other):
+        if isinstance(other, basestring):
+            return self.value != other
+        return super(PrintableEnum, self).__ne__(other)
+
 
 class DeploymentInstanceStatus(PrintableEnum):
 
