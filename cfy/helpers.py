@@ -12,6 +12,7 @@ from fcoclient.clients import (get_client, RESTClient, PROP_CLIENT_CONFIG)
 from fcoclient.api import REST as RESTApi
 import fcoclient.exceptions as fco_exceptions
 import resttypes.cobjects as cobjects
+import traceback
 
 
 def _find_instanceof_in_kwargs(cls, kw):
@@ -123,8 +124,9 @@ def with_exceptions_handled(f):
         except fco_exceptions.RecoverableError as e:
             raise RecoverableError(str(e), retry_after=e.retry_after)
         except Exception as e:
-            raise NonRecoverableError('{}: {}'
-                                      .format(type(e).__name__, str(e)))
+            raise NonRecoverableError('{}: {}\nStack trace: {}'
+                                      .format(type(e).__name__, e,
+                                              traceback.format_exc()))
 
     return wrapper
 
