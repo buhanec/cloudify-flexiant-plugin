@@ -6,5 +6,6 @@ requests
 pycrypto
 paramiko
 spur
+fabric
 scp
 nose

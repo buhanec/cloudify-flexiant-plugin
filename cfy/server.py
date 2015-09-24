@@ -27,6 +27,7 @@ import spur
 import spur.ssh
 from time import sleep
 from subprocess import call
+from fabric.api import settings, run
 import os
 
 
@@ -230,6 +231,28 @@ def create(fco_api, *args, **kwargs):
 
     ssh_attempts = -1
     ssh_delay = 3
+
+    # Fabric test
+
+    while ssh_attempts:
+        ctx.logger.info('Attempting to SSH ({})'.format(ssh_attempts))
+        try:
+            with settings(host_string=server_po_uuid, user=username,
+                          password=password, disable_known_hosts=True,
+                          abort_exception=Exception):
+                run('mkdir ~/.ssh')
+                run('chmod 0700 ~/.ssh')
+                for key, key_content in key_contents.items():
+                    remote = os.path.join('~', '.ssh', os.path.basename(key))
+                    run('echo \'{}\' > {}'.format(key_content, remote))
+                    run('chmod 0600 ' + remote)
+                ctx.logger.info('Done')
+                break
+        except Exception as e:
+            ctx.logger.info(e)
+        ssh_attempts -= 1
+    else:
+        raise Exception('Failed to provision keys in time')
 
     # # Spur test
     # while ssh_attempts:

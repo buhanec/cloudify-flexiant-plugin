@@ -41,6 +41,7 @@ setup(
         'pycrypto',
         'paramiko',
         'spur',
+        'fabric',
         'scp'
     ],
     test_requires=[
